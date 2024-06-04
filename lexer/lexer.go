@@ -68,22 +68,6 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case '%':
 		tok = newToken(token.MODULUS, l.ch)
-	case '<':
-		if l.peekChar() == '=' {
-			ch := l.ch
-			l.readChar()
-			tok = token.Token{Type: token.LE, Literal: string(ch) + string(l.ch)}
-		} else {
-			tok = newToken(token.LT, l.ch)
-		}
-	case '>':
-		if l.peekChar() == '=' {
-			ch := l.ch
-			l.readChar()
-			tok = token.Token{Type: token.GE, Literal: string(ch) + string(l.ch)}
-		} else {
-			tok = newToken(token.GT, l.ch)
-		}
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
 	case ',':
@@ -108,6 +92,30 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.RBRACKET, l.ch)
 	case ':':
 		tok = newToken(token.COLON, l.ch)
+	case '&':
+		tok = newToken(token.AND, l.ch)
+	case '|':
+		tok = newToken(token.OR, l.ch)
+	case '^':
+		tok = newToken(token.XOR, l.ch)
+	case '~':
+		tok = newToken(token.TILDE, l.ch)
+	case '>':
+		if l.peekChar() == '>' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.SHR, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(token.GT, l.ch)
+		}
+	case '<':
+		if l.peekChar() == '<' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.SHL, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(token.LT, l.ch)
+		}
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()

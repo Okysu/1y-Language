@@ -152,6 +152,8 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 		return evalBangOperatorExpression(right)
 	case "-":
 		return evalMinusPrefixOperatorExpression(right)
+	case "~":
+		return evalTildePrefixOperatorExpression(right)
 	default:
 		return newError("unknown operator: %s%s", operator, right.Type())
 	}
@@ -220,31 +222,41 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 
 	switch operator {
 	case "+":
-		return &object.Integer{Value: leftVal + rightVal}
+			return &object.Integer{Value: leftVal + rightVal}
 	case "-":
-		return &object.Integer{Value: leftVal - rightVal}
+			return &object.Integer{Value: leftVal - rightVal}
 	case "*":
-		return &object.Integer{Value: leftVal * rightVal}
+			return &object.Integer{Value: leftVal * rightVal}
 	case "/":
-		return &object.Integer{Value: leftVal / rightVal}
+			return &object.Integer{Value: leftVal / rightVal}
 	case "%":
-		return &object.Integer{Value: leftVal % rightVal}
+			return &object.Integer{Value: leftVal % rightVal}
 	case "**":
-		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+			return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "<":
-		return nativeBoolToBooleanObject(leftVal < rightVal)
+			return nativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
-		return nativeBoolToBooleanObject(leftVal > rightVal)
+			return nativeBoolToBooleanObject(leftVal > rightVal)
 	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
+			return nativeBoolToBooleanObject(leftVal == rightVal)
 	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
+			return nativeBoolToBooleanObject(leftVal != rightVal)
 	case ">=":
-		return nativeBoolToBooleanObject(leftVal >= rightVal)
+			return nativeBoolToBooleanObject(leftVal >= rightVal)
 	case "<=":
-		return nativeBoolToBooleanObject(leftVal <= rightVal)
+			return nativeBoolToBooleanObject(leftVal <= rightVal)
+	case "&":
+			return &object.Integer{Value: leftVal & rightVal}
+	case "|":
+			return &object.Integer{Value: leftVal | rightVal}
+	case "^":
+			return &object.Integer{Value: leftVal ^ rightVal}
+	case ">>":
+			return &object.Integer{Value: leftVal >> rightVal}
+	case "<<":
+			return &object.Integer{Value: leftVal << rightVal}
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+			return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
 
@@ -558,7 +570,7 @@ func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.
 func evalLoopStatement(body *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
 
-	for _, statement := range body.Statements{
+	for _, statement := range body.Statements {
 		result = Eval(statement, env)
 
 		if result != nil {
@@ -570,4 +582,13 @@ func evalLoopStatement(body *ast.BlockStatement, env *object.Environment) object
 	}
 
 	return result
+}
+
+func evalTildePrefixOperatorExpression(right object.Object) object.Object {
+	switch right := right.(type) {
+	case *object.Integer:
+		return &object.Integer{Value: ^right.Value}
+	default:
+		return newError("unknown operator: ~%s", right.Type())
+	}
 }

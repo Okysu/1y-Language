@@ -35,6 +35,16 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
+	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
+	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
+	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
+	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -49,27 +59,13 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.POW, p.parseInfixExpression)
 	p.registerInfix(token.LE, p.parseInfixExpression)
 	p.registerInfix(token.GE, p.parseInfixExpression)
-
-	p.registerPrefix(token.TRUE, p.parseBoolean)
-	p.registerPrefix(token.FALSE, p.parseBoolean)
-
-	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
-
-	p.registerPrefix(token.IF, p.parseIfExpression)
-
-	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
-
+	p.registerInfix(token.AND, p.parseInfixExpression)
+	p.registerInfix(token.OR, p.parseInfixExpression)
+	p.registerInfix(token.XOR, p.parseInfixExpression)
+	p.registerInfix(token.SHR, p.parseInfixExpression)
+	p.registerInfix(token.SHL, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
-
-	p.registerPrefix(token.STRING, p.parseStringLiteral)
-
-	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
-
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
-
-	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
-
-	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 
 	return p
 }
@@ -207,19 +203,20 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 const (
 	_ int = iota
 	LOWEST
-	EQUALS      // ==
-	LESSGREATER // > or <
-	SUM         // +
-	PRODUCT     // *
-	PREFIX      // -X or !X
+	EQUALS      // == or !=
+	LESSGREATER // >, <, >=, <=
+	SUM         // + or -
+	PRODUCT     // * or /
+	PREFIX      // -X, !X, ~X
 	ASSIGN      // =
 	CALL        // myFunction(X)
 	INDEX       // array[index]
 	MODULUS     // %
 	POW         // **
-
-	SEMICOLON // ;
+	BITWISE     // &, |, ^, >>, <<
+	SEMICOLON   // ;
 )
+
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
@@ -287,18 +284,24 @@ var precedences = map[token.TokenType]int{
 	token.NOT_EQ:   EQUALS,
 	token.LT:       LESSGREATER,
 	token.GT:       LESSGREATER,
+	token.LE:       LESSGREATER,
+	token.GE:       LESSGREATER,
 	token.PLUS:     SUM,
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
+	token.MODULUS:  MODULUS,
+	token.POW:      POW,
+	token.AND:      BITWISE,
+	token.OR:       BITWISE,
+	token.XOR:      BITWISE,
+	token.SHR:      BITWISE,
+	token.SHL:      BITWISE,
 	token.ASSIGN:   ASSIGN,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
-	token.MODULUS:  MODULUS,
-	token.POW:      POW,
-	token.LE:       LESSGREATER,
-	token.GE:       LESSGREATER,
 }
+
 
 func (p *Parser) peekPrecedence() int {
 	if p, ok := precedences[p.peekToken.Type]; ok {

@@ -60,6 +60,13 @@ const (
 
 	EQ     = "=="
 	NOT_EQ = "!="
+
+	AND     = "&"
+	OR      = "|"
+	XOR     = "^"
+	TILDE   = "~"
+	SHR     = ">>"
+	SHL     = "<<"
 )
 
 var keywords = map[string]TokenType{

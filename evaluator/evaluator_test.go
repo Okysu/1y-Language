@@ -664,3 +664,22 @@ func TestPowerOperatorStatements(t *testing.T) {
 		testIntegerObject(t, evaluated, tt.expected)
 	}
 }
+
+func TestBitwiseOperators(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"5 & 3", 1},
+		{"5 | 3", 7},
+		{"5 ^ 3", 6},
+		{"~5", -6},
+		{"5 >> 1", 2},
+		{"5 << 1", 10},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
