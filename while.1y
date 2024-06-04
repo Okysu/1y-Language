@@ -1,0 +1,7 @@
+let x = 1;
+let y = 1;
+while (x <= 10) {
+  let y = 1;
+  puts(x);
+  x = x + 1;
+}

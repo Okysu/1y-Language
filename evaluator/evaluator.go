@@ -529,9 +529,8 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 }
 
 func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.Object {
-	whileEnv := object.NewEnclosedEnvironment(env)
 	for {
-		condition := Eval(ws.Condition, whileEnv)
+		condition := Eval(ws.Condition, env)
 		if isError(condition) {
 			return condition
 		}
@@ -540,6 +539,7 @@ func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.
 			return NULL
 		}
 
+		whileEnv := object.NewEnclosedEnvironment(env)
 		result := evalLoopStatement(ws.Body, whileEnv)
 		if result != nil {
 			if result.Type() == object.BREAK_OBJ {
