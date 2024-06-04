@@ -1,6 +1,6 @@
 # 1lang Interpreter
 
-[简体版本](README.ZH_CN.md)
+[简体中文版本](README.ZH_CN.md)
 
 This project is a custom interpreter written in Go, implementing the Lexer, Parser, AST (Abstract Syntax Tree), and Evaluator.
 

@@ -1,6 +1,6 @@
 # 1lang 解释器
 
-[English Version](README)
+[English Version](README.md)
 
 本项目是由Go语言编写的自定义解释器，实现了词法分析器（Lexer）、解析器（Parser）、抽象语法树（AST）和求值器（Evaluator）。
 
