@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"hash/fnv"
+	"sort"
 	"strings"
 )
 
@@ -13,6 +14,43 @@ type ObjectType string
 type Object interface {
 	Type() ObjectType
 	Inspect() string
+}
+
+func IsEqual(obj1, obj2 Object) bool {
+	if obj1.Type() != obj2.Type() {
+		return false
+	}
+
+	switch o1 := obj1.(type) {
+	case *Integer:
+		o2 := obj2.(*Integer)
+		return o1.Value == o2.Value
+	case *Boolean:
+		o2 := obj2.(*Boolean)
+		return o1.Value == o2.Value
+	case *String:
+		o2 := obj2.(*String)
+		return o1.Value == o2.Value
+	case *Array:
+		o2 := obj2.(*Array)
+		if len(o1.Elements) != len(o2.Elements) {
+			return false
+		}
+		for i, el := range o1.Elements {
+			if !IsEqual(el, o2.Elements[i]) {
+				return false
+			}
+		}
+		return true
+	case *Hash:
+		o2 := obj2.(*Hash)
+		return o1.HashKey() == o2.HashKey()
+	case *Float:
+		o2 := obj2.(*Float)
+		return o1.Value == o2.Value
+	default:
+		return false
+	}
 }
 
 const (
@@ -222,7 +260,8 @@ type HashPair struct {
 
 // Hash represents a hash object
 type Hash struct {
-	Pairs map[HashKey]HashPair
+	Pairs   map[HashKey]HashPair
+	hashKey HashKey // Cached HashKey
 }
 
 func (h *Hash) Type() ObjectType {
@@ -243,6 +282,30 @@ func (h *Hash) Inspect() string {
 	out.WriteString("}")
 
 	return out.String()
+}
+
+func (h *Hash) HashKey() HashKey {
+	if h.hashKey == (HashKey{}) {
+		h.hashKey = h.computeHashKey()
+	}
+	return h.hashKey
+}
+
+func (h *Hash) computeHashKey() HashKey {
+	hfnv := fnv.New64a()
+	var keys []HashKey
+	for k := range h.Pairs {
+		keys = append(keys, k)
+	}
+	// Sort the keys to ensure the hash is consistent regardless of the order of insertion
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Value < keys[j].Value
+	})
+	for _, k := range keys {
+		hfnv.Write([]byte(fmt.Sprintf("%d", k.Value)))
+		hfnv.Write([]byte(h.Pairs[k].Value.Inspect()))
+	}
+	return HashKey{Type: h.Type(), Value: hfnv.Sum64()}
 }
 
 type Hashable interface {
