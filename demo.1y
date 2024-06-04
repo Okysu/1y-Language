@@ -1,0 +1,30 @@
+const filter = fn(arr, f) {
+  let iter = fn(arr, acc) {
+    if (len(arr) == 0) {
+      acc;
+    } else {
+      let x = first(arr);
+      let restArr = rest(arr);
+      if (f(x)) {
+        iter(restArr, push(acc, x));
+      } else {
+        iter(restArr, acc);
+      }
+    }
+  };
+  iter(arr, []);
+};
+
+const quick_sort = fn(arr) {
+  if (len(arr) <= 1) {
+    arr;
+  } else {
+    let pivot = first(arr);
+    let restArr = rest(arr);
+    let less = filter(restArr, fn(x) { x <= pivot });
+    let greater = filter(restArr, fn(x) { x > pivot });
+    concat(quick_sort(less), [pivot], quick_sort(greater));
+  }
+};
+
+quick_sort([3, 6, 8, 10, 1, 2, 1]);
