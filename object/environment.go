@@ -40,7 +40,10 @@ func (e *Environment) NewVar(name string, val Object) Object {
 }
 
 func (e *Environment) Set(name string, val Object) Object {
-	env := e.store[name]
+	env, ok := e.store[name]
+	if !ok && e.outer != nil {
+		return e.outer.Set(name, val)
+	}
 	if env.ReadOnly {
 		return newError("cannot assign to constant '%s'", name)
 	}
