@@ -129,7 +129,11 @@ func (l *Lexer) NextToken() token.Token {
 	case ':':
 		tok = newToken(token.COLON, l.ch)
 	case '&':
-		if l.peekChar() == '=' {
+		if l.peekChar() == '&' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.AND_AND, Literal: string(ch) + string(l.ch)}
+		} else if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.AND_ASSIGN, Literal: string(ch) + string(l.ch)}
@@ -137,7 +141,11 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.AND, l.ch)
 		}
 	case '|':
-		if l.peekChar() == '=' {
+		if l.peekChar() == '|' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.OR_OR, Literal: string(ch) + string(l.ch)}
+		} else if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.OR_ASSIGN, Literal: string(ch) + string(l.ch)}

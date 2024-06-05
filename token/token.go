@@ -81,6 +81,9 @@ const (
 	XOR_ASSIGN      = "^="
 	SHL_ASSIGN      = "<<="
 	SHR_ASSIGN      = ">>="
+
+	AND_AND = "&&"
+	OR_OR   = "||"
 )
 
 var keywords = map[string]TokenType{

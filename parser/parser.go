@@ -80,6 +80,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.XOR_ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.SHL_ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.SHR_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.AND_AND, p.parseInfixExpression)
+	p.registerInfix(token.OR_OR, p.parseInfixExpression)
 
 	return p
 }
@@ -217,12 +219,14 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 const (
 	_ int = iota
 	LOWEST
+	ASSIGN      // =
+	LOGICAL_OR  // ||
+	LOGICAL_AND // &&
 	EQUALS      // == or !=
 	LESSGREATER // >, <, >=, <=
 	SUM         // + or -
 	PRODUCT     // * or /
 	PREFIX      // -X, !X, ~X
-	ASSIGN      // =
 	CALL        // myFunction(X)
 	INDEX       // array[index]
 	MODULUS     // %
@@ -327,6 +331,8 @@ var precedences = map[token.TokenType]int{
 	token.XOR_ASSIGN:      ASSIGNMENT,
 	token.SHL_ASSIGN:      ASSIGNMENT,
 	token.SHR_ASSIGN:      ASSIGNMENT,
+	token.AND_AND:         LOGICAL_AND,
+	token.OR_OR:           LOGICAL_OR,
 }
 
 func (p *Parser) peekPrecedence() int {
