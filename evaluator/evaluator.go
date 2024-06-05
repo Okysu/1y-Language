@@ -531,6 +531,8 @@ func evalIndexExpression(left, index object.Object) object.Object {
 		return evalArrayIndexExpression(left, index)
 	case left.Type() == object.HASH_OBJ:
 		return evalHashIndexExpression(left, index)
+	case left.Type() == object.STRING_OBJ && index.Type() == object.INTEGER_OBJ:
+		return evalStringIndexExpression(left, index)
 	default:
 		return newError("index operator not supported: %s", left.Type())
 	}
@@ -804,4 +806,16 @@ func evalDotExpression(left object.Object, right *ast.Identifier) object.Object 
 	default:
 		return newError("not a hash: %s", left.Type())
 	}
+}
+
+func evalStringIndexExpression(str, index object.Object) object.Object {
+	strObj := str.(*object.String)
+	idx := index.(*object.Integer).Value
+	max := int64(len(strObj.Value) - 1)
+
+	if idx < 0 || idx > max {
+		return NULL
+	}
+
+	return &object.String{Value: string(strObj.Value[idx])}
 }
