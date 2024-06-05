@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	VERSION = "0.1.0"
+	VERSION = "0.1.0 (alpha-20240605)"
 	HELP    = `Type "quit" or "exit" to exit.`
 )
 
@@ -24,7 +24,7 @@ func main() {
 		repl.StartWithString(os.Stdout, string(bytes.TrimSpace(content)))
 	} else {
 		// Otherwise, start the REPL
-		fmt.Printf("1lang %s -- %s\n", VERSION, "A programming language written in Go")
+		fmt.Printf("1y Language %s -- %s\n", VERSION, "A programming language written in Go")
 		fmt.Println(HELP)
 		repl.Start(os.Stdin, os.Stdout)
 	}
