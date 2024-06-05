@@ -4,6 +4,7 @@ import (
 	"1ylang/object"
 	"fmt"
 	"math/rand"
+	"strings"
 )
 
 // newBuiltin is a helper function to create a new builtin function object.
@@ -12,10 +13,6 @@ func newBuiltin(fn func(args ...object.Object) object.Object) *object.Builtin {
 }
 
 var builtins = map[string]*object.Builtin{
-	"lang": newBuiltin(func(args ...object.Object) object.Object {
-		WELCOME := `Welcome to 1lang! This is the 1lang programming language!`
-		return &object.String{Value: WELCOME}
-	}),
 	"len": newBuiltin(func(args ...object.Object) object.Object {
 		if len(args) != 1 {
 			return newError("wrong number of arguments. got=%d, want=1", len(args))
@@ -159,5 +156,51 @@ var builtins = map[string]*object.Builtin{
 		} else {
 			return newError("wrong number of arguments. got=%d, want=1 or 2", len(args))
 		}
+	}),
+	"input": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) == 1 {
+			fmt.Print(args[0].Inspect())
+		} else if len(args) > 1 {
+			return newError("wrong number of arguments. got=%d, want=0 or 1", len(args))
+		}
+
+		var input string
+		fmt.Scanln(&input)
+		return &object.String{Value: input}
+	}),
+	"sprintf": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) == 0 {
+			return newError("wrong number of arguments. got=%d, want=1+", len(args))
+		}
+
+		format, ok := args[0].(*object.String)
+		if !ok {
+			return newError("first argument to `sprintf` must be STRING, got %s", args[0].Type())
+		}
+
+		values := make([]interface{}, len(args)-1)
+		for i, arg := range args[1:] {
+			values[i] = arg.Inspect()
+		}
+
+		return &object.String{Value: fmt.Sprintf(format.Value, values...)}
+	}),
+	"split": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) != 2 {
+			return newError("wrong number of arguments. got=%d, want=2", len(args))
+		}
+		if args[0].Type() != object.STRING_OBJ || args[1].Type() != object.STRING_OBJ {
+			return newError("arguments to `split` must be STRING, got %s and %s", args[0].Type(), args[1].Type())
+		}
+
+		str := args[0].(*object.String).Value
+		sep := args[1].(*object.String).Value
+
+		splitted := []object.Object{}
+		for _, s := range strings.Split(str, sep) {
+			splitted = append(splitted, &object.String{Value: s})
+		}
+
+		return &object.Array{Elements: splitted}
 	}),
 }
