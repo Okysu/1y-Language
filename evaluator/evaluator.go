@@ -43,7 +43,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.PostfixExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
-				return left
+			return left
 		}
 		return evalPostfixExpression(node.Operator, left)
 
@@ -240,15 +240,27 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	switch operator {
 	case "+":
 		return &object.Integer{Value: leftVal + rightVal}
+	case "+=":
+		return &object.Integer{Value: leftVal + rightVal}
 	case "-":
+		return &object.Integer{Value: leftVal - rightVal}
+	case "-=":
 		return &object.Integer{Value: leftVal - rightVal}
 	case "*":
 		return &object.Integer{Value: leftVal * rightVal}
+	case "*=":
+		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
+		return &object.Integer{Value: leftVal / rightVal}
+	case "/=":
 		return &object.Integer{Value: leftVal / rightVal}
 	case "%":
 		return &object.Integer{Value: leftVal % rightVal}
+	case "%=":
+		return &object.Integer{Value: leftVal % rightVal}
 	case "**":
+		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+	case "**=":
 		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
@@ -264,13 +276,23 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		return nativeBoolToBooleanObject(leftVal <= rightVal)
 	case "&":
 		return &object.Integer{Value: leftVal & rightVal}
+	case "&=":
+		return &object.Integer{Value: leftVal & rightVal}
 	case "|":
+		return &object.Integer{Value: leftVal | rightVal}
+	case "|=":
 		return &object.Integer{Value: leftVal | rightVal}
 	case "^":
 		return &object.Integer{Value: leftVal ^ rightVal}
+	case "^=":
+		return &object.Integer{Value: leftVal ^ rightVal}
 	case ">>":
 		return &object.Integer{Value: leftVal >> rightVal}
+	case ">>=":
+		return &object.Integer{Value: leftVal >> rightVal}
 	case "<<":
+		return &object.Integer{Value: leftVal << rightVal}
+	case "<<=":
 		return &object.Integer{Value: leftVal << rightVal}
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())

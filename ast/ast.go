@@ -442,3 +442,16 @@ func (pe *PostfixExpression) String() string {
 
 	return out.String()
 }
+
+type OperatorAssignment struct {
+	Token    token.Token // The '=' token
+	Operator string
+	Name     *Identifier
+	Value    Expression
+}
+
+func (a *OperatorAssignment) expressionNode()      {}
+func (a *OperatorAssignment) TokenLiteral() string { return a.Token.Literal }
+func (a *OperatorAssignment) String() string {
+	return fmt.Sprintf("%s %s %s", a.Name.String(), a.Operator, a.Value.String())
+}

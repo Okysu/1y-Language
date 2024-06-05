@@ -70,6 +70,17 @@ const (
 
 	INCREMENT = "++"
 	DECREMENT = "--"
+
+	PLUS_ASSIGN     = "+="
+	MINUS_ASSIGN    = "-="
+	ASTERISK_ASSIGN = "*="
+	SLASH_ASSIGN    = "/="
+	MODULUS_ASSIGN  = "%="
+	AND_ASSIGN      = "&="
+	OR_ASSIGN       = "|="
+	XOR_ASSIGN      = "^="
+	SHL_ASSIGN      = "<<="
+	SHR_ASSIGN      = ">>="
 )
 
 var keywords = map[string]TokenType{

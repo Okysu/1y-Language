@@ -70,6 +70,16 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 	p.registerInfix(token.INCREMENT, p.parsePostfixExpression)
 	p.registerInfix(token.DECREMENT, p.parsePostfixExpression)
+	p.registerInfix(token.PLUS_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.MINUS_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.SLASH_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.MODULUS_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.AND_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.OR_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.XOR_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.SHL_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.SHR_ASSIGN, p.parseInfixExpression)
 
 	return p
 }
@@ -219,6 +229,7 @@ const (
 	POW         // **
 	BITWISE     // &, |, ^, >>, <<
 	POSTFIX     // i++
+	ASSIGNMENT  // +=
 	SEMICOLON   // ;
 )
 
@@ -284,28 +295,38 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 }
 
 var precedences = map[token.TokenType]int{
-	token.EQ:        EQUALS,
-	token.NOT_EQ:    EQUALS,
-	token.LT:        LESSGREATER,
-	token.GT:        LESSGREATER,
-	token.LE:        LESSGREATER,
-	token.GE:        LESSGREATER,
-	token.PLUS:      SUM,
-	token.MINUS:     SUM,
-	token.SLASH:     PRODUCT,
-	token.ASTERISK:  PRODUCT,
-	token.MODULUS:   MODULUS,
-	token.POW:       POW,
-	token.INCREMENT: POSTFIX,
-	token.DECREMENT: POSTFIX,
-	token.AND:       BITWISE,
-	token.OR:        BITWISE,
-	token.XOR:       BITWISE,
-	token.SHR:       BITWISE,
-	token.SHL:       BITWISE,
-	token.ASSIGN:    ASSIGN,
-	token.LPAREN:    CALL,
-	token.LBRACKET:  INDEX,
+	token.EQ:              EQUALS,
+	token.NOT_EQ:          EQUALS,
+	token.LT:              LESSGREATER,
+	token.GT:              LESSGREATER,
+	token.LE:              LESSGREATER,
+	token.GE:              LESSGREATER,
+	token.PLUS:            SUM,
+	token.MINUS:           SUM,
+	token.SLASH:           PRODUCT,
+	token.ASTERISK:        PRODUCT,
+	token.MODULUS:         MODULUS,
+	token.POW:             POW,
+	token.INCREMENT:       POSTFIX,
+	token.DECREMENT:       POSTFIX,
+	token.AND:             BITWISE,
+	token.OR:              BITWISE,
+	token.XOR:             BITWISE,
+	token.SHR:             BITWISE,
+	token.SHL:             BITWISE,
+	token.ASSIGN:          ASSIGN,
+	token.LPAREN:          CALL,
+	token.LBRACKET:        INDEX,
+	token.PLUS_ASSIGN:     ASSIGNMENT,
+	token.MINUS_ASSIGN:    ASSIGNMENT,
+	token.ASTERISK_ASSIGN: ASSIGNMENT,
+	token.SLASH_ASSIGN:    ASSIGNMENT,
+	token.MODULUS_ASSIGN:  ASSIGNMENT,
+	token.AND_ASSIGN:      ASSIGNMENT,
+	token.OR_ASSIGN:       ASSIGNMENT,
+	token.XOR_ASSIGN:      ASSIGNMENT,
+	token.SHL_ASSIGN:      ASSIGNMENT,
+	token.SHR_ASSIGN:      ASSIGNMENT,
 }
 
 func (p *Parser) peekPrecedence() int {
