@@ -3,7 +3,7 @@ package object
 import "fmt"
 
 type EnvValue struct {
-	Value Object
+	Value    Object
 	ReadOnly bool // If true, the value cannot be changed
 }
 
@@ -32,6 +32,9 @@ func (e *Environment) Get(name string) (Object, bool, bool) {
 }
 
 func (e *Environment) NewVar(name string, val Object) Object {
+	if !isValidName(name) {
+		return newError("invalid variable name '%s'", name)
+	}
 	if e.isExist(name) {
 		return newError("cannot redeclare variable '%s'", name)
 	}
@@ -57,6 +60,9 @@ func (e *Environment) isExist(name string) bool {
 }
 
 func (e *Environment) NewConst(name string, val Object) Object {
+	if !isValidName(name) {
+		return newError("invalid variable name '%s'", name)
+	}
 	if e.isExist(name) {
 		return newError("cannot redeclare constant '%s'", name)
 	}
@@ -66,4 +72,14 @@ func (e *Environment) NewConst(name string, val Object) Object {
 
 func newError(format string, a ...interface{}) *Error {
 	return &Error{Message: fmt.Sprintf(format, a...)}
+}
+
+func isValidName(name string) bool {
+	if len(name) == 0 {
+		return false
+	}
+	if name[0] >= '0' && name[0] <= '9' {
+		return false
+	}
+	return true
 }
