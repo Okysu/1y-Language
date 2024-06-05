@@ -40,6 +40,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return evalPrefixExpression(node.Operator, right)
 
+	case *ast.PostfixExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+				return left
+		}
+		return evalPostfixExpression(node.Operator, left)
+
 	case *ast.InfixExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -154,6 +161,10 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 		return evalMinusPrefixOperatorExpression(right)
 	case "~":
 		return evalTildePrefixOperatorExpression(right)
+	case "++":
+		return evalIncrementExpression(right, true)
+	case "--":
+		return evalDecrementExpression(right, true)
 	default:
 		return newError("unknown operator: %s%s", operator, right.Type())
 	}
@@ -650,5 +661,48 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 		return nativeBoolToBooleanObject(!object.IsEqual(leftArr, rightArr))
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalPostfixExpression(operator string, left object.Object) object.Object {
+	switch operator {
+	case "++":
+		return evalIncrementExpression(left, false)
+	case "--":
+		return evalDecrementExpression(left, false)
+	default:
+		return newError("unknown operator: %s%s", operator, left.Type())
+	}
+}
+
+func evalIncrementExpression(operand object.Object, isPrefix bool) object.Object {
+	switch operand := operand.(type) {
+	case *object.Integer:
+		if isPrefix {
+			operand.Value++
+			return operand
+		} else {
+			result := &object.Integer{Value: operand.Value}
+			operand.Value++
+			return result
+		}
+	default:
+		return newError("unknown operator: ++%s", operand.Type())
+	}
+}
+
+func evalDecrementExpression(operand object.Object, isPrefix bool) object.Object {
+	switch operand := operand.(type) {
+	case *object.Integer:
+		if isPrefix {
+			operand.Value--
+			return operand
+		} else {
+			result := &object.Integer{Value: operand.Value}
+			operand.Value--
+			return result
+		}
+	default:
+		return newError("unknown operator: --%s", operand.Type())
 	}
 }

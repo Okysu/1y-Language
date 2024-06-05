@@ -27,6 +27,14 @@ if (5 < 10) {
 "foo bar"
 [1, 2];
 {"foo": "bar"}
+1 % 2;
+1 ^ 2;
+1 & 2;
+1 | 2;
+1 << 2;
+1 >> 2;
+a++;
+b--;
 	`
 
 	tests := []struct {
@@ -119,6 +127,36 @@ if (5 < 10) {
 		{token.COLON, ":"},
 		{token.STRING, "bar"},
 		{token.RBRACE, "}"},
+		{token.INT, "1"},
+		{token.MODULUS, "%"},
+		{token.INT, "2"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "1"},
+		{token.XOR, "^"},
+		{token.INT, "2"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "1"},
+		{token.AND, "&"},
+		{token.INT, "2"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "1"},
+		{token.OR, "|"},
+		{token.INT, "2"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "1"},
+		{token.SHL, "<<"},
+		{token.INT, "2"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "1"},
+		{token.SHR, ">>"},
+		{token.INT, "2"},
+		{token.SEMICOLON, ";"},
+		{token.IDENT, "a"},
+		{token.INCREMENT, "++"},
+		{token.SEMICOLON, ";"},
+		{token.IDENT, "b"},
+		{token.DECREMENT, "--"},
+		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
 	}
 

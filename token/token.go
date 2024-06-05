@@ -61,26 +61,29 @@ const (
 	EQ     = "=="
 	NOT_EQ = "!="
 
-	AND     = "&"
-	OR      = "|"
-	XOR     = "^"
-	TILDE   = "~"
-	SHR     = ">>"
-	SHL     = "<<"
+	AND   = "&"
+	OR    = "|"
+	XOR   = "^"
+	TILDE = "~"
+	SHR   = ">>"
+	SHL   = "<<"
+
+	INCREMENT = "++"
+	DECREMENT = "--"
 )
 
 var keywords = map[string]TokenType{
-	"fn":     FUNCTION,
-	"let":    LET,
-	"true":   TRUE,
-	"false":  FALSE,
-	"if":     IF,
-	"else":   ELSE,
-	"return": RETURN,
-	"const":  CONST,
-	"while":  WHILE,
-	"for":    FOR,
-	"break":  BREAK,
+	"fn":       FUNCTION,
+	"let":      LET,
+	"true":     TRUE,
+	"false":    FALSE,
+	"if":       IF,
+	"else":     ELSE,
+	"return":   RETURN,
+	"const":    CONST,
+	"while":    WHILE,
+	"for":      FOR,
+	"break":    BREAK,
 	"continue": CONTINUE,
 }
 

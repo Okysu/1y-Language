@@ -45,6 +45,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
+	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -66,6 +68,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.SHL, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+	p.registerInfix(token.INCREMENT, p.parsePostfixExpression)
+	p.registerInfix(token.DECREMENT, p.parsePostfixExpression)
 
 	return p
 }
@@ -214,9 +218,9 @@ const (
 	MODULUS     // %
 	POW         // **
 	BITWISE     // &, |, ^, >>, <<
+	POSTFIX     // i++
 	SEMICOLON   // ;
 )
-
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
@@ -280,28 +284,29 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 }
 
 var precedences = map[token.TokenType]int{
-	token.EQ:       EQUALS,
-	token.NOT_EQ:   EQUALS,
-	token.LT:       LESSGREATER,
-	token.GT:       LESSGREATER,
-	token.LE:       LESSGREATER,
-	token.GE:       LESSGREATER,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.SLASH:    PRODUCT,
-	token.ASTERISK: PRODUCT,
-	token.MODULUS:  MODULUS,
-	token.POW:      POW,
-	token.AND:      BITWISE,
-	token.OR:       BITWISE,
-	token.XOR:      BITWISE,
-	token.SHR:      BITWISE,
-	token.SHL:      BITWISE,
-	token.ASSIGN:   ASSIGN,
-	token.LPAREN:   CALL,
-	token.LBRACKET: INDEX,
+	token.EQ:        EQUALS,
+	token.NOT_EQ:    EQUALS,
+	token.LT:        LESSGREATER,
+	token.GT:        LESSGREATER,
+	token.LE:        LESSGREATER,
+	token.GE:        LESSGREATER,
+	token.PLUS:      SUM,
+	token.MINUS:     SUM,
+	token.SLASH:     PRODUCT,
+	token.ASTERISK:  PRODUCT,
+	token.MODULUS:   MODULUS,
+	token.POW:       POW,
+	token.INCREMENT: POSTFIX,
+	token.DECREMENT: POSTFIX,
+	token.AND:       BITWISE,
+	token.OR:        BITWISE,
+	token.XOR:       BITWISE,
+	token.SHR:       BITWISE,
+	token.SHL:       BITWISE,
+	token.ASSIGN:    ASSIGN,
+	token.LPAREN:    CALL,
+	token.LBRACKET:  INDEX,
 }
-
 
 func (p *Parser) peekPrecedence() int {
 	if p, ok := precedences[p.peekToken.Type]; ok {
@@ -621,4 +626,14 @@ func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
 	}
 
 	return stmt
+}
+
+func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
+	expression := &ast.PostfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+
+	return expression
 }
