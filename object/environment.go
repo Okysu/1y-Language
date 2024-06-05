@@ -23,6 +23,10 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 	return env
 }
 
+func (e *Environment) Store() map[string]EnvValue {
+	return e.store
+}
+
 func (e *Environment) Get(name string) (Object, bool, bool) {
 	env, ok := e.store[name]
 	if !ok && e.outer != nil {
