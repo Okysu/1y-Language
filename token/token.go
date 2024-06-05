@@ -84,6 +84,8 @@ const (
 
 	AND_AND = "&&"
 	OR_OR   = "||"
+
+	DOT = "."
 )
 
 var keywords = map[string]TokenType{

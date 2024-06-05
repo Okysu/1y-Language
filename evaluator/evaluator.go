@@ -129,6 +129,19 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.WhileStatement:
 		return evalWhileStatement(node, env)
 
+	case *ast.DotExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+
+		right, ok := node.Right.(*ast.Identifier)
+		if !ok {
+			return newError("expected property name to be identifier, got %T", node.Right)
+		}
+
+		return evalDotExpression(left, right)
+
 	case *ast.BreakStatement:
 		return BREAK
 	case *ast.ContinueStatement:
@@ -541,17 +554,48 @@ func evalAssignmentExpression(node *ast.Assignment, env *object.Environment) obj
 		return val
 	}
 
-	_, ok, readOnly := env.Get(node.Name.Value)
-	if !ok {
-		return newError("identifier not found: " + node.Name.Value)
-	}
+	switch name := node.Name.(type) {
+	case *ast.Identifier:
+		_, ok, readOnly := env.Get(name.Value)
+		if !ok {
+			return newError("identifier not found: " + name.Value)
+		}
 
-	if readOnly {
-		return newError("cannot assign to constant '%s'", node.Name.Value)
-	}
+		if readOnly {
+			return newError("cannot assign to constant '%s'", name.Value)
+		}
 
-	env.Set(node.Name.Value, val)
-	return val
+		env.Set(name.Value, val)
+		return val
+
+	case *ast.DotExpression:
+		left := Eval(name.Left, env)
+		if isError(left) {
+			return left
+		}
+
+		right, ok := name.Right.(*ast.Identifier)
+		if !ok {
+			return newError("expected property name to be identifier, got %T", name.Right)
+		}
+
+		return evalDotAssignment(left, right, val)
+
+	default:
+		return newError("invalid assignment target: %T", node.Name)
+	}
+}
+
+func evalDotAssignment(left object.Object, right *ast.Identifier, val object.Object) object.Object {
+	switch left := left.(type) {
+	case *object.Hash:
+		key := &object.String{Value: right.Value}
+		hashKey := key.HashKey()
+		left.Pairs[hashKey] = object.HashPair{Key: key, Value: val}
+		return val
+	default:
+		return newError("not a hash: %s", left.Type())
+	}
 }
 
 func evalHashLiteral(node *ast.HashLiteral, env *object.Environment) object.Object {
@@ -745,4 +789,19 @@ func evalLogicalOrExpression(left, right object.Object) object.Object {
 		return left
 	}
 	return right
+}
+
+func evalDotExpression(left object.Object, right *ast.Identifier) object.Object {
+	switch left := left.(type) {
+	case *object.Hash:
+		key := &object.String{Value: right.Value}
+		hashKey := key.HashKey()
+		if pair, ok := left.Pairs[hashKey]; ok {
+			return pair.Value
+		} else {
+			return NULL
+		}
+	default:
+		return newError("not a hash: %s", left.Type())
+	}
 }

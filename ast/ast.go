@@ -318,7 +318,7 @@ func (ie *IndexExpression) String() string {
 
 type Assignment struct {
 	Token token.Token // The '=' token
-	Name  *Identifier
+	Name  Expression
 	Value Expression
 }
 
@@ -327,6 +327,7 @@ func (a *Assignment) TokenLiteral() string { return a.Token.Literal }
 func (a *Assignment) String() string {
 	return fmt.Sprintf("%s = %s", a.Name.String(), a.Value.String())
 }
+
 
 type HashLiteral struct {
 	Token token.Token // The '{' token
@@ -439,6 +440,24 @@ func (pe *PostfixExpression) String() string {
 	out.WriteString(pe.Left.String())
 	out.WriteString(pe.Operator)
 	out.WriteString(")")
+
+	return out.String()
+}
+
+type DotExpression struct {
+	Token token.Token // The '.' token
+	Left  Expression
+	Right Expression
+}
+
+func (de *DotExpression) expressionNode()      {}
+func (de *DotExpression) TokenLiteral() string { return de.Token.Literal }
+func (de *DotExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(de.Left.String())
+	out.WriteString(".")
+	out.WriteString(de.Right.String())
 
 	return out.String()
 }

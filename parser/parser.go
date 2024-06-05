@@ -82,6 +82,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.SHR_ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.AND_AND, p.parseInfixExpression)
 	p.registerInfix(token.OR_OR, p.parseInfixExpression)
+	p.registerInfix(token.DOT, p.parseDotExpression)
 
 	return p
 }
@@ -234,6 +235,7 @@ const (
 	BITWISE     // &, |, ^, >>, <<
 	POSTFIX     // i++
 	ASSIGNMENT  // +=
+	DOT         // .
 	SEMICOLON   // ;
 )
 
@@ -246,6 +248,10 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	leftExp := prefix()
 
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		if p.curTokenIs(token.IDENT) && p.peekTokenIs(token.ASSIGN) {
+			return p.parseAssignmentExpression(leftExp)
+		}
+
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
 			return leftExp
@@ -260,9 +266,6 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
-	if p.peekTokenIs(token.ASSIGN) {
-		return p.parseAssignmentExpression()
-	}
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
@@ -333,6 +336,7 @@ var precedences = map[token.TokenType]int{
 	token.SHR_ASSIGN:      ASSIGNMENT,
 	token.AND_AND:         LOGICAL_AND,
 	token.OR_OR:           LOGICAL_OR,
+	token.DOT:             DOT,
 }
 
 func (p *Parser) peekPrecedence() int {
@@ -532,10 +536,10 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	return exp
 }
 
-func (p *Parser) parseAssignmentExpression() ast.Expression {
+func (p *Parser) parseAssignmentExpression(name ast.Expression) ast.Expression {
 	expression := &ast.Assignment{
 		Token: p.curToken,
-		Name:  &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal},
+		Name:  name,
 	}
 
 	if !p.expectPeek(token.ASSIGN) {
@@ -661,6 +665,24 @@ func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
 		Operator: p.curToken.Literal,
 		Left:     left,
 	}
+
+	return expression
+}
+
+func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
+	expression := &ast.DotExpression{
+		Token: p.curToken, // The '.' token
+		Left:  left,
+	}
+
+	p.nextToken()
+
+	if !p.curTokenIs(token.IDENT) {
+		p.errors = append(p.errors, fmt.Sprintf("expected property name to be identifier, got %s instead", p.curToken.Type))
+		return nil
+	}
+
+	expression.Right = p.parseIdentifier()
 
 	return expression
 }

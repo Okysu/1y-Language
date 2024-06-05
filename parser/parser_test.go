@@ -845,13 +845,7 @@ func TestParsingAssignmentExpressions(t *testing.T) {
 		t.Fatalf("stmt.Expression is not *ast.Assignment. got=%T", stmt.Expression)
 	}
 
-	if assignExp.Name.Value != "a" {
-		t.Errorf("assignExp.Name.Value not 'a'. got=%s", assignExp.Name.Value)
-	}
-
-	if assignExp.Name.TokenLiteral() != "a" {
-		t.Errorf("assignExp.Name.TokenLiteral() not 'a'. got=%s", assignExp.Name.TokenLiteral())
-	}
+	testIdentifier(t, assignExp.Name, "a")
 
 	if !testIntegerLiteral(t, assignExp.Value, 1) {
 		return

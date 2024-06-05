@@ -685,3 +685,33 @@ func TestBitwiseOperators(t *testing.T) {
 		testIntegerObject(t, evaluated, tt.expected)
 	}
 }
+
+func TestHashDotStatement(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{
+			`let h = {"foo": 5}; h.foo`,
+			5,
+		},
+		{
+			`let h = {"foo": 5}; h.foo = 10; h.foo`,
+			10,
+		},
+		{
+			`let h = {"foo": 5}; h.bar = 10; h.bar`,
+			10,
+		},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		integer, ok := tt.expected.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			testNullObject(t, evaluated)
+		}
+	}
+}

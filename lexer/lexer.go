@@ -210,6 +210,8 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.LT, l.ch)
 		}
+	case '.':
+		tok = newToken(token.DOT, l.ch)
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
