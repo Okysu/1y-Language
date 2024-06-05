@@ -12,7 +12,6 @@ The project is inspired by Thorsten Ball's book "Writing An Interpreter In Go". 
 ## Future Work
 - Object-oriented support
 - Module import mechanism
-- Comment system
 - Macro system
 
 ## Example Usage

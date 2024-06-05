@@ -15,6 +15,12 @@ const filter = fn(arr, f) {
   iter(arr, []);
 };
 
+/**
+  * Quick sort implementation in 1y language
+  * 
+  * @param {Array} arr
+  * @returns {Array}
+  */
 const quick_sort = fn(arr) {
   if (len(arr) <= 1) {
     arr;

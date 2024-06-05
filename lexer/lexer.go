@@ -9,6 +9,7 @@ type Lexer struct {
 	position     int  // current position in input (points to current char)
 	readPosition int  // current reading position in input (after current char)
 	ch           byte // current char under examination
+	inComment    bool // flag to indicate if inside a multi-line comment
 }
 
 // New creates a new Lexer instance
@@ -34,6 +35,10 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
 	l.skipWhitespace()
+
+	if l.inComment {
+		l.skipMultiLineComment()
+	}
 
 	switch l.ch {
 	case '=':
@@ -81,6 +86,15 @@ func (l *Lexer) NextToken() token.Token {
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.SLASH_ASSIGN, Literal: string(ch) + string(l.ch)}
+		} else if l.peekChar() == '/' {
+			l.skipSingleLineComment()
+			return l.NextToken()
+		} else if l.peekChar() == '*' {
+			l.inComment = true
+			l.readChar() // consume '*'
+			l.readChar() // move to next character
+			l.skipMultiLineComment()
+			return l.NextToken()
 		} else {
 			tok = newToken(token.SLASH, l.ch)
 		}
@@ -240,8 +254,12 @@ func isLetter(ch byte) bool {
 
 // skipWhitespace skips whitespace characters in the input
 func (l *Lexer) skipWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
-		l.readChar()
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' || l.inComment {
+		if l.inComment {
+			l.skipMultiLineComment()
+		} else {
+			l.readChar()
+		}
 	}
 }
 
@@ -286,4 +304,26 @@ func (l *Lexer) readFloat() string {
 		l.readChar()
 	}
 	return l.input[position:l.position]
+}
+
+func (l *Lexer) skipSingleLineComment() {
+	for l.ch != '\n' && l.ch != 0 {
+		l.readChar()
+	}
+}
+
+func (l *Lexer) skipMultiLineComment() {
+	for l.inComment {
+		l.readChar()
+		if l.ch == '*' && l.peekChar() == '/' {
+			l.readChar() // consume '*'
+			l.readChar() // consume '/'
+			l.inComment = false
+		}
+		if l.ch == 0 {
+			// Reached EOF without closing comment
+			l.inComment = false
+			break
+		}
+	}
 }
