@@ -180,7 +180,14 @@ type IfExpression struct {
 	Condition   Expression
 	Consequence *BlockStatement
 	Alternative *BlockStatement
+	Elifs       []*ElifExpression // else if
 }
+
+type ElifExpression struct {
+	Condition   Expression
+	Consequence *BlockStatement
+}
+
 
 func (ie *IfExpression) expressionNode()      {}
 func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
@@ -327,7 +334,6 @@ func (a *Assignment) TokenLiteral() string { return a.Token.Literal }
 func (a *Assignment) String() string {
 	return fmt.Sprintf("%s = %s", a.Name.String(), a.Value.String())
 }
-
 
 type HashLiteral struct {
 	Token token.Token // The '{' token
@@ -476,4 +482,3 @@ func (ie *ImportExpression) String() string {
 	out.WriteString(")")
 	return out.String()
 }
-

@@ -52,9 +52,9 @@ const (
 	FALSE    = "FALSE"
 	IF       = "IF"
 	ELSE     = "ELSE"
+	ELIF     = "ELIF" // else if
 	RETURN   = "RETURN"
 	WHILE    = "WHILE"
-	FOR      = "FOR"
 	BREAK    = "BREAK"
 	CONTINUE = "CONTINUE"
 	IMPORT   = "IMPORT"
@@ -96,10 +96,10 @@ var keywords = map[string]TokenType{
 	"false":    FALSE,
 	"if":       IF,
 	"else":     ELSE,
+	"elif":     ELIF,
 	"return":   RETURN,
 	"const":    CONST,
 	"while":    WHILE,
-	"for":      FOR,
 	"break":    BREAK,
 	"continue": CONTINUE,
 	"import":   IMPORT,
@@ -108,6 +108,7 @@ var keywords = map[string]TokenType{
 // LookupIdent checks if the given identifier is a keyword
 func LookupIdent(ident string) TokenType {
 	if tok, ok := keywords[ident]; ok {
+		println("tok: ", tok, " ok: ", ok)
 		return tok
 	}
 	return IDENT

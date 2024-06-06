@@ -392,36 +392,62 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken}
 
 	if !p.expectPeek(token.LPAREN) {
-		return nil
+			return nil
 	}
 
 	p.nextToken()
-
 	expression.Condition = p.parseExpression(LOWEST)
 
 	if !p.expectPeek(token.RPAREN) {
-		return nil
+			return nil
 	}
 
 	if !p.expectPeek(token.LBRACE) {
-		return nil
+			return nil
 	}
 
 	expression.Consequence = p.parseBlockStatement()
 
+	for p.peekTokenIs(token.ELIF) {
+			p.nextToken() // consume 'elif'
+
+			elif := &ast.ElifExpression{}
+
+			if !p.expectPeek(token.LPAREN) {
+					return nil
+			}
+
+			p.nextToken()
+			elif.Condition = p.parseExpression(LOWEST)
+
+			if !p.expectPeek(token.RPAREN) {
+					return nil
+			}
+
+			if !p.expectPeek(token.LBRACE) {
+					return nil
+			}
+
+			elif.Consequence = p.parseBlockStatement()
+			expression.Elifs = append(expression.Elifs, elif)
+	}
+
 	if p.peekTokenIs(token.ELSE) {
-		p.nextToken()
+			p.nextToken()
 
-		if !p.expectPeek(token.LBRACE) {
-			return nil
-		}
+			if !p.expectPeek(token.LBRACE) {
+					return nil
+			}
 
-		expression.Alternative = p.parseBlockStatement()
-
+			expression.Alternative = p.parseBlockStatement()
 	}
 
 	return expression
 }
+
+
+
+
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.curToken}

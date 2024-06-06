@@ -214,8 +214,9 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.DOT, l.ch)
 	default:
 		if isLetter(l.ch) {
-			tok.Literal = l.readIdentifier()
-			tok.Type = token.LookupIdent(tok.Literal)
+			literal := l.readIdentifier()
+			tok.Type = token.LookupIdent(literal)
+			tok.Literal = literal
 			return tok
 		} else if isDigit(l.ch) {
 			if l.peekChar() == '.' {
