@@ -4,6 +4,7 @@ import (
 	"1ylang/object"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 )
 
@@ -201,5 +202,62 @@ var builtins = map[string]*object.Builtin{
 		}
 
 		return &object.Array{Elements: splitted}
+	}),
+	"int": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+
+		switch arg := args[0].(type) {
+		case *object.String:
+			value, err := strconv.ParseInt(arg.Value, 10, 64)
+			if err != nil {
+				return newError("cannot convert %s to int", arg.Value)
+			}
+			return &object.Integer{Value: value}
+		case *object.Float:
+			return &object.Integer{Value: int64(arg.Value)}
+		default:
+			return newError("argument to `int` must be STRING or FLOAT, got %s", args[0].Type())
+		}
+	}),
+	"float": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+
+		switch arg := args[0].(type) {
+		case *object.String:
+			value, err := strconv.ParseFloat(arg.Value, 64)
+			if err != nil {
+				return newError("cannot convert %s to float", arg.Value)
+			}
+			return &object.Float{Value: value}
+		case *object.Integer:
+			return &object.Float{Value: float64(arg.Value)}
+		default:
+			return newError("argument to `float` must be STRING or INTEGER, got %s", args[0].Type())
+		}
+	}),
+	"str": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+
+		switch arg := args[0].(type) {
+		case *object.Integer:
+			return &object.String{Value: strconv.FormatInt(arg.Value, 10)}
+		case *object.Float:
+			return &object.String{Value: strconv.FormatFloat(arg.Value, 'f', -1, 64)}
+		default:
+			return newError("argument to `str` must be INTEGER or FLOAT, got %s", args[0].Type())
+		}
+	}),
+	"type": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+
+		return &object.String{Value: string(args[0].Type())}
 	}),
 }
