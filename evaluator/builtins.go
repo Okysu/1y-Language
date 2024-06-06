@@ -91,13 +91,12 @@ var builtins = map[string]*object.Builtin{
 		}
 
 		arr := args[0].(*object.Array)
-		length := len(arr.Elements)
 
-		newElements := make([]object.Object, length+1)
-		copy(newElements, arr.Elements)
-		newElements[length] = args[1]
+		// Modify the original array by appending the new element
+		arr.Elements = append(arr.Elements, args[1])
 
-		return &object.Array{Elements: newElements}
+		// Return the modified array
+		return arr
 	}),
 	"concat": newBuiltin(func(args ...object.Object) object.Object {
 		if len(args) < 2 {
