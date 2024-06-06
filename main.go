@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	VERSION = "0.1.0 (alpha-20240605)"
+	VERSION = "0.1.0 (alpha-20240607)"
 	HELP    = `Type "quit" or "exit" to exit.`
 )
 
