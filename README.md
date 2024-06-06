@@ -6,12 +6,20 @@ This project is a custom interpreter written in Go, implementing the Lexer, Pars
 
 The project is inspired by Thorsten Ball's book "Writing An Interpreter In Go". Building on the original implementation, new keywords and feature modifications have been added to meet the characteristics of modern programming languages.
 
+## Now Supported Features
+- Variable assignment and reference
+- Function definition and call
+- Arithmetic operations
+- Conditional statements
+- Loop statements [While]
+- Array operations
+- Importing external modules
+- Comments
+
 ## Current Issues
 - Error reporting lacks line and column information
 
 ## Future Work
-- Object-oriented support
-- Module import mechanism
 - Macro system
 
 ## Example Usage

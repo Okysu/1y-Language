@@ -2,9 +2,14 @@ package evaluator
 
 import (
 	"1ylang/ast"
+	"1ylang/lexer"
 	"1ylang/object"
+	"1ylang/parser"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // Eval evaluates an AST node
@@ -128,6 +133,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.WhileStatement:
 		return evalWhileStatement(node, env)
+	
+	case *ast.ImportExpression:
+		return evalImportExpression(node, env)
 
 	case *ast.DotExpression:
 		left := Eval(node.Left, env)
@@ -818,4 +826,63 @@ func evalStringIndexExpression(str, index object.Object) object.Object {
 	}
 
 	return &object.String{Value: string(strObj.Value[idx])}
+}
+
+func evalImportExpression(ie *ast.ImportExpression, env *object.Environment) object.Object {
+	// Evaluate the import path
+	pathObj := Eval(ie.Path, env)
+	if pathObj.Type() != object.STRING_OBJ {
+		return newError("import path must be a string, got %s", pathObj.Type())
+	}
+
+	path := pathObj.(*object.String).Value
+	if !strings.HasSuffix(path, ".1y") {
+		path += ".1y"
+	}
+
+	// Try to read the file from the current working directory or interpreter directory
+	content, err := readFileFromCurrentOrInterpreterDir(path)
+	if err != nil {
+		return newError("could not read file: %s", path)
+	}
+
+	// Lexical and syntactical analysis
+	l := lexer.New(string(content))
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		return newError("parsing file %s failed: %s", path, strings.Join(p.Errors(), "\n"))
+	}
+
+	// Create a new environment and execute the program
+	newEnv := object.NewEnvironment()
+	Eval(program, newEnv)
+
+	// Wrap the variables in the new environment into a Hash object
+	hash := &object.Hash{Pairs: make(map[object.HashKey]object.HashPair)}
+	for k, v := range newEnv.Store() {
+		hashKey := &object.String{Value: k}
+		hash.Pairs[hashKey.HashKey()] = object.HashPair{Key: hashKey, Value: v.Value}
+	}
+
+	return hash
+}
+
+func readFileFromCurrentOrInterpreterDir(path string) ([]byte, error) {
+	// Try to read the file from the current working directory
+	content, err := os.ReadFile(path)
+	if err == nil {
+		return content, nil
+	}
+
+	// Get the interpreter directory
+	execPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	execDir := filepath.Dir(execPath)
+
+	// Try to read the file from the interpreter directory
+	fullPath := filepath.Join(execDir, path)
+	return os.ReadFile(fullPath)
 }

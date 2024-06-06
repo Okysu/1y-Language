@@ -461,3 +461,19 @@ func (de *DotExpression) String() string {
 
 	return out.String()
 }
+
+type ImportExpression struct {
+	Token token.Token // the 'import' token
+	Path  Expression
+}
+
+func (ie *ImportExpression) expressionNode()      {}
+func (ie *ImportExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *ImportExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("import(")
+	out.WriteString(ie.Path.String())
+	out.WriteString(")")
+	return out.String()
+}
+

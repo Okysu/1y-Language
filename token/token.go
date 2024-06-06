@@ -57,6 +57,7 @@ const (
 	FOR      = "FOR"
 	BREAK    = "BREAK"
 	CONTINUE = "CONTINUE"
+	IMPORT   = "IMPORT"
 
 	EQ     = "=="
 	NOT_EQ = "!="
@@ -101,6 +102,7 @@ var keywords = map[string]TokenType{
 	"for":      FOR,
 	"break":    BREAK,
 	"continue": CONTINUE,
+	"import":   IMPORT,
 }
 
 // LookupIdent checks if the given identifier is a keyword

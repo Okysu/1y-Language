@@ -47,6 +47,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.IMPORT, p.parseImportExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -236,6 +237,7 @@ const (
 	POSTFIX     // i++
 	ASSIGNMENT  // +=
 	DOT         // .
+	IMPORT      // import("path")
 	SEMICOLON   // ;
 )
 
@@ -337,6 +339,7 @@ var precedences = map[token.TokenType]int{
 	token.AND_AND:         LOGICAL_AND,
 	token.OR_OR:           LOGICAL_OR,
 	token.DOT:             DOT,
+	token.IMPORT:          IMPORT,
 }
 
 func (p *Parser) peekPrecedence() int {
@@ -683,6 +686,24 @@ func (p *Parser) parseDotExpression(left ast.Expression) ast.Expression {
 	}
 
 	expression.Right = p.parseIdentifier()
+
+	return expression
+}
+
+func (p *Parser) parseImportExpression() ast.Expression {
+	expression := &ast.ImportExpression{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	expression.Path = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
 
 	return expression
 }
