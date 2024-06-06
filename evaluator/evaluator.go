@@ -276,6 +276,9 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "*=":
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
+		if rightVal == 0 {
+			return newError("division by zero")
+		}
 		return &object.Integer{Value: leftVal / rightVal}
 	case "/=":
 		return &object.Integer{Value: leftVal / rightVal}
@@ -336,6 +339,9 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 	case "*":
 		return &object.Float{Value: leftVal * rightVal}
 	case "/":
+		if rightVal == 0 {
+			return newError("division by zero")
+		}
 		return &object.Float{Value: leftVal / rightVal}
 	case "**":
 		return &object.Float{Value: math.Pow(leftVal, rightVal)}
@@ -365,6 +371,9 @@ func evalMixedInfixExpression(operator string, leftVal float64, rightVal float64
 	case "*":
 		return &object.Float{Value: leftVal * rightVal}
 	case "/":
+		if rightVal == 0 {
+			return newError("division by zero")
+		}
 		return &object.Float{Value: leftVal / rightVal}
 	case "**":
 		return &object.Float{Value: math.Pow(leftVal, rightVal)}
@@ -384,31 +393,30 @@ func evalMixedInfixExpression(operator string, leftVal float64, rightVal float64
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
 	condition := Eval(ie.Condition, env)
 	if isError(condition) {
-			return condition
+		return condition
 	}
 
 	if isTruthy(condition) {
-			return Eval(ie.Consequence, env)
+		return Eval(ie.Consequence, env)
 	}
 
 	for _, elif := range ie.Elifs {
-			condition := Eval(elif.Condition, env)
-			if isError(condition) {
-					return condition
-			}
+		condition := Eval(elif.Condition, env)
+		if isError(condition) {
+			return condition
+		}
 
-			if isTruthy(condition) {
-					return Eval(elif.Consequence, env)
-			}
+		if isTruthy(condition) {
+			return Eval(elif.Consequence, env)
+		}
 	}
 
 	if ie.Alternative != nil {
-			return Eval(ie.Alternative, env)
+		return Eval(ie.Alternative, env)
 	}
 
 	return NULL
 }
-
 
 func isTruthy(obj object.Object) bool {
 	switch obj {
