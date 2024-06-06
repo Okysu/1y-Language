@@ -5,7 +5,7 @@ import (
 	"1ylang/lexer"
 	"1ylang/token"
 	"fmt"
-	"strconv"
+	"math/big"
 )
 
 type Parser struct {
@@ -274,9 +274,25 @@ func (p *Parser) parseIdentifier() ast.Expression {
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
-	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-	if err != nil {
+	value := new(big.Int)
+	_, ok := value.SetString(p.curToken.Literal, 0)
+	if !ok {
 		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+	return lit
+}
+
+func (p *Parser) parseFloatLiteral() ast.Expression {
+	lit := &ast.FloatLiteral{Token: p.curToken}
+
+	value := new(big.Float)
+	_, _, err := value.Parse(p.curToken.Literal, 10)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as float", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -637,20 +653,6 @@ func (p *Parser) parseConstStatement() *ast.ConstStatement {
 	}
 
 	return stmt
-}
-
-func (p *Parser) parseFloatLiteral() ast.Expression {
-	lit := &ast.FloatLiteral{Token: p.curToken}
-
-	value, err := strconv.ParseFloat(p.curToken.Literal, 64)
-	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float", p.curToken.Literal)
-		p.errors = append(p.errors, msg)
-		return nil
-	}
-
-	lit.Value = value
-	return lit
 }
 
 func (p *Parser) parseWhileStatement() *ast.WhileStatement {

@@ -4,6 +4,7 @@ import (
 	"1ylang/token"
 	"bytes"
 	"fmt"
+	"math/big"
 	"strings"
 )
 
@@ -119,7 +120,7 @@ func (es *ExpressionStatement) String() string {
 
 type IntegerLiteral struct {
 	Token token.Token
-	Value int64
+	Value *big.Int
 }
 
 func (il *IntegerLiteral) expressionNode()      {}
@@ -187,7 +188,6 @@ type ElifExpression struct {
 	Condition   Expression
 	Consequence *BlockStatement
 }
-
 
 func (ie *IfExpression) expressionNode()      {}
 func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
@@ -382,19 +382,13 @@ func (cs *ConstStatement) String() string {
 }
 
 type FloatLiteral struct {
-	Token token.Token // the token.FLOAT token
-	Value float64
+	Token token.Token
+	Value *big.Float
 }
 
-func (fl *FloatLiteral) expressionNode() {}
-
-func (fl *FloatLiteral) TokenLiteral() string {
-	return fl.Token.Literal
-}
-
-func (fl *FloatLiteral) String() string {
-	return fl.Token.Literal
-}
+func (fl *FloatLiteral) expressionNode()      {}
+func (fl *FloatLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (fl *FloatLiteral) String() string       { return fl.Token.Literal }
 
 type WhileStatement struct {
 	Token     token.Token // the 'while' token

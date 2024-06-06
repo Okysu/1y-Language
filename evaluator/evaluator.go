@@ -7,6 +7,7 @@ import (
 	"1ylang/parser"
 	"fmt"
 	"math"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -201,13 +202,13 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 		return TRUE
 	default:
 		if integerObj, ok := right.(*object.Integer); ok {
-			if integerObj.Value == 0 {
+			if integerObj.Value.Cmp(big.NewInt(0)) == 0 {
 				return TRUE
 			}
 			return FALSE
 		}
 		if floatObj, ok := right.(*object.Float); ok {
-			if floatObj.Value == 0.0 {
+			if floatObj.Value.Cmp(big.NewFloat(0.0)) == 0 {
 				return TRUE
 			}
 			return FALSE
@@ -217,12 +218,14 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	if right.Type() != object.INTEGER_OBJ {
+	switch right := right.(type) {
+	case *object.Integer:
+		return &object.Integer{Value: new(big.Int).Neg(right.Value)}
+	case *object.Float:
+		return &object.Float{Value: new(big.Float).Neg(right.Value)}
+	default:
 		return newError("unknown operator: -%s", right.Type())
 	}
-
-	value := right.(*object.Integer).Value
-	return &object.Integer{Value: -value}
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
@@ -236,9 +239,9 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
 		return evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalMixedInfixExpression(operator, float64(left.(*object.Integer).Value), right.(*object.Float).Value)
+		return evalMixedInfixExpression(operator, new(big.Float).SetInt(left.(*object.Integer).Value), right.(*object.Float).Value)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalMixedInfixExpression(operator, left.(*object.Float).Value, float64(right.(*object.Integer).Value))
+		return evalMixedInfixExpression(operator, left.(*object.Float).Value, new(big.Float).SetInt(right.(*object.Integer).Value))
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(operator, left, right)
 	case left.Type() == object.HASH_OBJ && right.Type() == object.HASH_OBJ:
@@ -264,64 +267,85 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 
 	switch operator {
 	case "+":
-		return &object.Integer{Value: leftVal + rightVal}
+		return &object.Integer{Value: new(big.Int).Add(leftVal, rightVal)}
 	case "+=":
-		return &object.Integer{Value: leftVal + rightVal}
+		return &object.Integer{Value: new(big.Int).Add(leftVal, rightVal)}
 	case "-":
-		return &object.Integer{Value: leftVal - rightVal}
+		return &object.Integer{Value: new(big.Int).Sub(leftVal, rightVal)}
 	case "-=":
-		return &object.Integer{Value: leftVal - rightVal}
+		return &object.Integer{Value: new(big.Int).Sub(leftVal, rightVal)}
 	case "*":
-		return &object.Integer{Value: leftVal * rightVal}
+		return &object.Integer{Value: new(big.Int).Mul(leftVal, rightVal)}
 	case "*=":
-		return &object.Integer{Value: leftVal * rightVal}
+		return &object.Integer{Value: new(big.Int).Mul(leftVal, rightVal)}
 	case "/":
-		if rightVal == 0 {
+		if rightVal.Cmp(big.NewInt(0)) == 0 {
 			return newError("division by zero")
 		}
-		return &object.Integer{Value: leftVal / rightVal}
+		return &object.Integer{Value: new(big.Int).Div(leftVal, rightVal)}
 	case "/=":
-		return &object.Integer{Value: leftVal / rightVal}
+		if rightVal.Cmp(big.NewInt(0)) == 0 {
+			return newError("division by zero")
+		}
+		return &object.Integer{Value: new(big.Int).Div(leftVal, rightVal)}
 	case "%":
-		return &object.Integer{Value: leftVal % rightVal}
+		if rightVal.Cmp(big.NewInt(0)) == 0 {
+			return newError("modulus by zero")
+		}
+		return &object.Integer{Value: new(big.Int).Mod(leftVal, rightVal)}
 	case "%=":
-		return &object.Integer{Value: leftVal % rightVal}
+		if rightVal.Cmp(big.NewInt(0)) == 0 {
+			return newError("modulus by zero")
+		}
+		return &object.Integer{Value: new(big.Int).Mod(leftVal, rightVal)}
 	case "**":
-		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		leftFloat := new(big.Float).SetInt(leftVal)
+		rightFloat := new(big.Float).SetInt(rightVal)
+		result := new(big.Float).SetPrec(512).SetMode(big.ToZero)
+		floatResult, _ := leftFloat.Float64()
+		rightResult, _ := rightFloat.Float64()
+		result = result.SetFloat64(math.Pow(floatResult, rightResult))
+		return &object.Float{Value: result}
 	case "**=":
-		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
+		leftFloat := new(big.Float).SetInt(leftVal)
+		rightFloat := new(big.Float).SetInt(rightVal)
+		result := new(big.Float).SetPrec(512).SetMode(big.ToZero)
+		floatResult, _ := leftFloat.Float64()
+		rightResult, _ := rightFloat.Float64()
+		result = result.SetFloat64(math.Pow(floatResult, rightResult))
+		return &object.Float{Value: result}
 	case "<":
-		return nativeBoolToBooleanObject(leftVal < rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
-		return nativeBoolToBooleanObject(leftVal > rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) > 0)
 	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) == 0)
 	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) != 0)
 	case ">=":
-		return nativeBoolToBooleanObject(leftVal >= rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) >= 0)
 	case "<=":
-		return nativeBoolToBooleanObject(leftVal <= rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) <= 0)
 	case "&":
-		return &object.Integer{Value: leftVal & rightVal}
+		return &object.Integer{Value: new(big.Int).And(leftVal, rightVal)}
 	case "&=":
-		return &object.Integer{Value: leftVal & rightVal}
+		return &object.Integer{Value: new(big.Int).And(leftVal, rightVal)}
 	case "|":
-		return &object.Integer{Value: leftVal | rightVal}
+		return &object.Integer{Value: new(big.Int).Or(leftVal, rightVal)}
 	case "|=":
-		return &object.Integer{Value: leftVal | rightVal}
+		return &object.Integer{Value: new(big.Int).Or(leftVal, rightVal)}
 	case "^":
-		return &object.Integer{Value: leftVal ^ rightVal}
+		return &object.Integer{Value: new(big.Int).Xor(leftVal, rightVal)}
 	case "^=":
-		return &object.Integer{Value: leftVal ^ rightVal}
+		return &object.Integer{Value: new(big.Int).Xor(leftVal, rightVal)}
 	case ">>":
-		return &object.Integer{Value: leftVal >> rightVal}
+		return &object.Integer{Value: new(big.Int).Rsh(leftVal, uint(rightVal.Int64()))}
 	case ">>=":
-		return &object.Integer{Value: leftVal >> rightVal}
+		return &object.Integer{Value: new(big.Int).Rsh(leftVal, uint(rightVal.Int64()))}
 	case "<<":
-		return &object.Integer{Value: leftVal << rightVal}
+		return &object.Integer{Value: new(big.Int).Lsh(leftVal, uint(rightVal.Int64()))}
 	case "<<=":
-		return &object.Integer{Value: leftVal << rightVal}
+		return &object.Integer{Value: new(big.Int).Lsh(leftVal, uint(rightVal.Int64()))}
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -331,63 +355,71 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 	leftVal := left.(*object.Float).Value
 	rightVal := right.(*object.Float).Value
 
+	result := new(big.Float)
+
 	switch operator {
 	case "+":
-		return &object.Float{Value: leftVal + rightVal}
+		result.Add(leftVal, rightVal)
 	case "-":
-		return &object.Float{Value: leftVal - rightVal}
+		result.Sub(leftVal, rightVal)
 	case "*":
-		return &object.Float{Value: leftVal * rightVal}
+		result.Mul(leftVal, rightVal)
 	case "/":
-		if rightVal == 0 {
+		if rightVal.Cmp(big.NewFloat(0)) == 0 {
 			return newError("division by zero")
 		}
-		return &object.Float{Value: leftVal / rightVal}
-	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
+		result.Quo(leftVal, rightVal)
 	case "<":
-		return nativeBoolToBooleanObject(leftVal < rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
-		return nativeBoolToBooleanObject(leftVal > rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) > 0)
 	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) == 0)
 	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) != 0)
 	case ">=":
-		return nativeBoolToBooleanObject(leftVal >= rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) >= 0)
 	case "<=":
-		return nativeBoolToBooleanObject(leftVal <= rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) <= 0)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+
+	return &object.Float{Value: result}
 }
 
-func evalMixedInfixExpression(operator string, leftVal float64, rightVal float64) object.Object {
+func evalMixedInfixExpression(operator string, leftVal, rightVal *big.Float) object.Object {
+	result := new(big.Float)
+
 	switch operator {
 	case "+":
-		return &object.Float{Value: leftVal + rightVal}
+		result.Add(leftVal, rightVal)
 	case "-":
-		return &object.Float{Value: leftVal - rightVal}
+		result.Sub(leftVal, rightVal)
 	case "*":
-		return &object.Float{Value: leftVal * rightVal}
+		result.Mul(leftVal, rightVal)
 	case "/":
-		if rightVal == 0 {
+		if rightVal.Cmp(big.NewFloat(0)) == 0 {
 			return newError("division by zero")
 		}
-		return &object.Float{Value: leftVal / rightVal}
-	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
+		result.Quo(leftVal, rightVal)
 	case "<":
-		return nativeBoolToBooleanObject(leftVal < rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
-		return nativeBoolToBooleanObject(leftVal > rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) > 0)
 	case "==":
-		return nativeBoolToBooleanObject(leftVal == rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) == 0)
 	case "!=":
-		return nativeBoolToBooleanObject(leftVal != rightVal)
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) != 0)
+	case ">=":
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) >= 0)
+	case "<=":
+		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) <= 0)
 	default:
 		return newError("unknown operator: %s %s %s", "FLOAT", operator, "FLOAT")
 	}
+
+	return &object.Float{Value: result}
 }
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
@@ -571,13 +603,13 @@ func evalIndexExpression(left, index object.Object) object.Object {
 func evalArrayIndexExpression(array, index object.Object) object.Object {
 	arrayObj := array.(*object.Array)
 	idx := index.(*object.Integer).Value
-	max := int64(len(arrayObj.Elements) - 1)
+	max := big.NewInt(int64(len(arrayObj.Elements) - 1))
 
-	if idx < 0 || idx > max {
+	if idx.Cmp(big.NewInt(0)) < 0 || idx.Cmp(max) > 0 {
 		return NULL
 	}
 
-	return arrayObj.Elements[idx]
+	return arrayObj.Elements[idx.Int64()]
 }
 
 func evalAssignmentExpression(node *ast.Assignment, env *object.Environment) object.Object {
@@ -718,7 +750,7 @@ func evalLoopStatement(body *ast.BlockStatement, env *object.Environment) object
 func evalTildePrefixOperatorExpression(right object.Object) object.Object {
 	switch right := right.(type) {
 	case *object.Integer:
-		return &object.Integer{Value: ^right.Value}
+		return &object.Integer{Value: new(big.Int).Not(right.Value)}
 	default:
 		return newError("unknown operator: ~%s", right.Type())
 	}
@@ -781,11 +813,11 @@ func evalIncrementExpression(operand object.Object, isPrefix bool) object.Object
 	switch operand := operand.(type) {
 	case *object.Integer:
 		if isPrefix {
-			operand.Value++
+			operand.Value.Add(operand.Value, big.NewInt(1))
 			return operand
 		} else {
-			result := &object.Integer{Value: operand.Value}
-			operand.Value++
+			result := &object.Integer{Value: new(big.Int).Set(operand.Value)}
+			operand.Value.Add(operand.Value, big.NewInt(1))
 			return result
 		}
 	default:
@@ -797,11 +829,11 @@ func evalDecrementExpression(operand object.Object, isPrefix bool) object.Object
 	switch operand := operand.(type) {
 	case *object.Integer:
 		if isPrefix {
-			operand.Value--
+			operand.Value.Sub(operand.Value, big.NewInt(1))
 			return operand
 		} else {
-			result := &object.Integer{Value: operand.Value}
-			operand.Value--
+			result := &object.Integer{Value: new(big.Int).Set(operand.Value)}
+			operand.Value.Sub(operand.Value, big.NewInt(1))
 			return result
 		}
 	default:
@@ -841,13 +873,13 @@ func evalDotExpression(left object.Object, right *ast.Identifier) object.Object 
 func evalStringIndexExpression(str, index object.Object) object.Object {
 	strObj := str.(*object.String)
 	idx := index.(*object.Integer).Value
-	max := int64(len(strObj.Value) - 1)
+	max := big.NewInt(int64(len(strObj.Value) - 1))
 
-	if idx < 0 || idx > max {
+	if idx.Cmp(big.NewInt(0)) < 0 || idx.Cmp(max) > 0 {
 		return NULL
 	}
 
-	return &object.String{Value: string(strObj.Value[idx])}
+	return &object.String{Value: string(strObj.Value[idx.Int64()])}
 }
 
 func evalImportExpression(ie *ast.ImportExpression, env *object.Environment) object.Object {

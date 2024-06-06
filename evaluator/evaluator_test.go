@@ -4,6 +4,7 @@ import (
 	"1ylang/lexer"
 	"1ylang/object"
 	"1ylang/parser"
+	"math/big"
 	"testing"
 )
 
@@ -52,10 +53,13 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 		t.Errorf("object is not Integer. got=%T (%+v)", obj, obj)
 		return false
 	}
-	if result.Value != expected {
-		t.Errorf("object has wrong value. got=%d, want=%d", result.Value, expected)
+
+	expectedValue := big.NewInt(expected)
+	if result.Value.Cmp(expectedValue) != 0 {
+		t.Errorf("object has wrong value. got=%s, want=%s", result.Value.String(), expectedValue.String())
 		return false
 	}
+
 	return true
 }
 
@@ -541,13 +545,13 @@ func TestHashLiterals(t *testing.T) {
 		t.Fatalf("Eval didn't return Hash. got=%T (%+v)", evaluated, evaluated)
 	}
 
-	expected := map[object.HashKey]int64{
-		(&object.String{Value: "one"}).HashKey():   1,
-		(&object.String{Value: "two"}).HashKey():   2,
-		(&object.String{Value: "three"}).HashKey(): 3,
-		(&object.Integer{Value: 4}).HashKey():      4,
-		TRUE.HashKey():                             5,
-		FALSE.HashKey():                            6,
+	expected := map[object.HashKey]*big.Int{
+		(&object.String{Value: "one"}).HashKey():          big.NewInt(1),
+		(&object.String{Value: "two"}).HashKey():          big.NewInt(2),
+		(&object.String{Value: "three"}).HashKey():        big.NewInt(3),
+		(&object.Integer{Value: big.NewInt(4)}).HashKey(): big.NewInt(4),
+		TRUE.HashKey():  big.NewInt(5),
+		FALSE.HashKey(): big.NewInt(6),
 	}
 
 	if len(result.Pairs) != len(expected) {
@@ -560,7 +564,9 @@ func TestHashLiterals(t *testing.T) {
 			t.Errorf("no pair for given key in Pairs")
 		}
 
-		testIntegerObject(t, pair.Value, expectedValue)
+		if !testIntegerObject(t, pair.Value, expectedValue.Int64()) {
+			return
+		}
 	}
 }
 
@@ -650,12 +656,12 @@ func TestModOperatorStatements(t *testing.T) {
 func TestPowerOperatorStatements(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected int64
+		expected float64
 	}{
 		{"2 ** 3", 8},
 		{"-2 ** 3", -8},
-		{"2 ** -3", 0},
-		{"-2 ** -3", 0},
+		{"2 ** -3", 0.125},
+		{"-2 ** -3", -0.125},
 		{"2 ** 0", 1},
 		{"0 ** 2", 0},
 		{"0 ** 0", 1},
@@ -663,8 +669,24 @@ func TestPowerOperatorStatements(t *testing.T) {
 
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
-		testIntegerObject(t, evaluated, tt.expected)
+		testFloatObject(t, evaluated, float64(tt.expected))
 	}
+}
+
+func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
+	result, ok := obj.(*object.Float)
+	if !ok {
+		t.Errorf("object is not Float. got=%T (%+v)", obj, obj)
+		return false
+	}
+
+	expectedValue := big.NewFloat(expected)
+	if result.Value.Cmp(expectedValue) != 0 {
+		t.Errorf("object has wrong value. got=%s, want=%s", result.Value.String(), expectedValue.String())
+		return false
+	}
+
+	return true
 }
 
 func TestBitwiseOperators(t *testing.T) {

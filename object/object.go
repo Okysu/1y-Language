@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"hash/fnv"
+	"math/big"
 	"sort"
 	"strings"
 )
@@ -24,7 +25,7 @@ func IsEqual(obj1, obj2 Object) bool {
 	switch o1 := obj1.(type) {
 	case *Integer:
 		o2 := obj2.(*Integer)
-		return o1.Value == o2.Value
+		return o1.Value.Cmp(o2.Value) == 0
 	case *Boolean:
 		o2 := obj2.(*Boolean)
 		return o1.Value == o2.Value
@@ -47,7 +48,7 @@ func IsEqual(obj1, obj2 Object) bool {
 		return o1.HashKey() == o2.HashKey()
 	case *Float:
 		o2 := obj2.(*Float)
-		return o1.Value == o2.Value
+		return o1.Value.Cmp(o2.Value) == 0
 	default:
 		return false
 	}
@@ -72,12 +73,12 @@ const (
 
 // Integer represents an integer object
 type Integer struct {
-	Value   int64
+	Value   *big.Int
 	hashKey HashKey // Cached HashKey
 }
 
 func (i *Integer) Inspect() string {
-	return fmt.Sprintf("%d", i.Value)
+	return i.Value.String()
 }
 
 func (i *Integer) Type() ObjectType {
@@ -86,7 +87,9 @@ func (i *Integer) Type() ObjectType {
 
 func (i *Integer) HashKey() HashKey {
 	if i.hashKey == (HashKey{}) {
-		i.hashKey = HashKey{Type: i.Type(), Value: uint64(i.Value)}
+		h := fnv.New64a()
+		h.Write([]byte(i.Value.String()))
+		i.hashKey = HashKey{Type: i.Type(), Value: h.Sum64()}
 	}
 	return i.hashKey
 }
@@ -313,12 +316,12 @@ type Hashable interface {
 }
 
 type Float struct {
-	Value   float64
+	Value   *big.Float
 	hashKey HashKey // Cached HashKey
 }
 
 func (f *Float) Inspect() string {
-	return fmt.Sprintf("%f", f.Value)
+	return f.Value.Text('g', -1)
 }
 
 func (f *Float) Type() ObjectType {
@@ -328,7 +331,7 @@ func (f *Float) Type() ObjectType {
 func (f *Float) HashKey() HashKey {
 	if f.hashKey == (HashKey{}) {
 		h := fnv.New64a()
-		h.Write([]byte(fmt.Sprintf("%f", f.Value)))
+		h.Write([]byte(f.Value.Text('g', -1)))
 		f.hashKey = HashKey{Type: f.Type(), Value: h.Sum64()}
 	}
 	return f.hashKey

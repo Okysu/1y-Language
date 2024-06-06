@@ -4,6 +4,7 @@ import (
 	"1ylang/ast"
 	"1ylang/lexer"
 	"fmt"
+	"math/big"
 	"strconv"
 	"testing"
 )
@@ -171,8 +172,9 @@ func TestIntegerLiteralExpression(t *testing.T) {
 		t.Fatalf("exp not *ast.IntegerLiteral. got=%T", stmt.Expression)
 	}
 
-	if literal.Value != 5 {
-		t.Errorf("literal.Value not %d. got=%d", 5, literal.Value)
+	expectedValue := big.NewInt(5)
+	if literal.Value.Cmp(expectedValue) != 0 {
+		t.Errorf("literal.Value not %s. got=%s", expectedValue.String(), literal.Value.String())
 	}
 
 	if literal.TokenLiteral() != "5" {
@@ -228,8 +230,9 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 		return false
 	}
 
-	if integ.Value != value {
-		t.Fatalf("integ.Value not %d. got=%d", value, integ.Value)
+	expectedValue := big.NewInt(value)
+	if integ.Value.Cmp(expectedValue) != 0 {
+		t.Fatalf("integ.Value not %d. got=%s", value, integ.Value.String())
 		return false
 	}
 
@@ -1047,15 +1050,16 @@ func TestFloatStatements(t *testing.T) {
 	}
 }
 
-func testFloatLiteral(t *testing.T, il ast.Expression, value float64) bool {
-	float, ok := il.(*ast.FloatLiteral)
+func testFloatLiteral(t *testing.T, fl ast.Expression, value float64) bool {
+	float, ok := fl.(*ast.FloatLiteral)
 	if !ok {
-		t.Fatalf("il not *ast.FloatLiteral. got=%T", il)
+		t.Fatalf("fl not *ast.FloatLiteral. got=%T", fl)
 		return false
 	}
 
-	if float.Value != value {
-		t.Fatalf("float.Value not %f. got=%f", value, float.Value)
+	expectedValue := big.NewFloat(value)
+	if float.Value.Cmp(expectedValue) != 0 {
+		t.Fatalf("float.Value not %f. got=%s", value, float.Value.Text('f', -1))
 		return false
 	}
 

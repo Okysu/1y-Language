@@ -3,8 +3,8 @@ package evaluator
 import (
 	"1ylang/object"
 	"fmt"
+	"math/big"
 	"math/rand"
-	"strconv"
 	"strings"
 )
 
@@ -21,9 +21,9 @@ var builtins = map[string]*object.Builtin{
 
 		switch arg := args[0].(type) {
 		case *object.String:
-			return &object.Integer{Value: int64(len(arg.Value))}
+			return &object.Integer{Value: big.NewInt(int64(len(arg.Value)))}
 		case *object.Array:
-			return &object.Integer{Value: int64(len(arg.Elements))}
+			return &object.Integer{Value: big.NewInt(int64(len(arg.Elements)))}
 		default:
 			return newError("argument to `len` not supported, got %s", args[0].Type())
 		}
@@ -128,13 +128,13 @@ var builtins = map[string]*object.Builtin{
 		start := args[0].(*object.Integer).Value
 		end := args[1].(*object.Integer).Value
 
-		if start > end {
+		if start.Cmp(end) > 0 {
 			return newError("start index cannot be greater than end index")
 		}
 
 		newElements := []object.Object{}
-		for i := start; i < end; i++ {
-			newElements = append(newElements, &object.Integer{Value: i})
+		for i := new(big.Int).Set(start); i.Cmp(end) < 0; i.Add(i, big.NewInt(1)) {
+			newElements = append(newElements, &object.Integer{Value: new(big.Int).Set(i)})
 		}
 
 		return &object.Array{Elements: newElements}
@@ -145,14 +145,14 @@ var builtins = map[string]*object.Builtin{
 				return newError("argument to `random` must be INTEGER, got %s", args[0].Type())
 			}
 			max := args[0].(*object.Integer).Value
-			return &object.Integer{Value: rand.Int63n(max)}
+			return &object.Integer{Value: big.NewInt(rand.Int63n(max.Int64()))}
 		} else if len(args) == 2 {
 			if args[0].Type() != object.INTEGER_OBJ || args[1].Type() != object.INTEGER_OBJ {
 				return newError("arguments to `random` must be INTEGER, got %s and %s", args[0].Type(), args[1].Type())
 			}
 			min := args[0].(*object.Integer).Value
 			max := args[1].(*object.Integer).Value
-			return &object.Integer{Value: rand.Int63n(max-min) + min}
+			return &object.Integer{Value: big.NewInt(rand.Int63n(max.Int64()-min.Int64()) + min.Int64())}
 		} else {
 			return newError("wrong number of arguments. got=%d, want=1 or 2", len(args))
 		}
@@ -210,13 +210,17 @@ var builtins = map[string]*object.Builtin{
 
 		switch arg := args[0].(type) {
 		case *object.String:
-			value, err := strconv.ParseInt(arg.Value, 10, 64)
-			if err != nil {
+			value, ok := new(big.Int).SetString(arg.Value, 10)
+			if !ok {
 				return newError("cannot convert %s to int", arg.Value)
 			}
 			return &object.Integer{Value: value}
 		case *object.Float:
-			return &object.Integer{Value: int64(arg.Value)}
+			value, ok := new(big.Int).SetString(arg.Value.String(), 10)
+			if !ok {
+				return newError("cannot convert %s to int", arg.Value.String())
+			}
+			return &object.Integer{Value: value}
 		default:
 			return newError("argument to `int` must be STRING or FLOAT, got %s", args[0].Type())
 		}
@@ -228,13 +232,13 @@ var builtins = map[string]*object.Builtin{
 
 		switch arg := args[0].(type) {
 		case *object.String:
-			value, err := strconv.ParseFloat(arg.Value, 64)
-			if err != nil {
+			value, ok := new(big.Float).SetString(arg.Value)
+			if !ok {
 				return newError("cannot convert %s to float", arg.Value)
 			}
 			return &object.Float{Value: value}
 		case *object.Integer:
-			return &object.Float{Value: float64(arg.Value)}
+			return &object.Float{Value: new(big.Float).SetInt(arg.Value)}
 		default:
 			return newError("argument to `float` must be STRING or INTEGER, got %s", args[0].Type())
 		}
@@ -246,9 +250,9 @@ var builtins = map[string]*object.Builtin{
 
 		switch arg := args[0].(type) {
 		case *object.Integer:
-			return &object.String{Value: strconv.FormatInt(arg.Value, 10)}
+			return &object.String{Value: arg.Value.String()}
 		case *object.Float:
-			return &object.String{Value: strconv.FormatFloat(arg.Value, 'f', -1, 64)}
+			return &object.String{Value: arg.Value.Text('f', -1)}
 		default:
 			return newError("argument to `str` must be INTEGER or FLOAT, got %s", args[0].Type())
 		}
