@@ -6,6 +6,7 @@ import (
 	"1ylang/token"
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 type Parser struct {
@@ -297,17 +298,34 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 func (p *Parser) parseFloatLiteral() ast.Expression {
 	lit := &ast.FloatLiteral{Token: p.curToken}
 
-	// Convert the scientific notation to a float
-	value, _, err := big.ParseFloat(p.curToken.Literal, 10, 256, big.ToNearestEven)
-	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float: %v", p.curToken.Literal, err)
+	value, ok := new(big.Float).SetString(p.curToken.Literal)
+	if !ok {
+		msg := fmt.Sprintf("could not parse %q as float", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
+	}
+
+	// Validate scientific notation
+	if strings.ContainsAny(p.curToken.Literal, "eE") {
+		parts := strings.Split(strings.ToLower(p.curToken.Literal), "e")
+		if len(parts) != 2 {
+			msg := fmt.Sprintf("invalid scientific notation: %q", p.curToken.Literal)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+
+		exponent := new(big.Int)
+		if _, ok := exponent.SetString(parts[1], 10); !ok {
+			msg := fmt.Sprintf("invalid exponent in scientific notation: %q", parts[1])
+			p.errors = append(p.errors, msg)
+			return nil
+		}
 	}
 
 	lit.Value = value
 	return lit
 }
+
 
 func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)

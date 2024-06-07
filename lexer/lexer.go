@@ -213,7 +213,7 @@ func (l *Lexer) NextToken() token.Token {
 	case '.':
 		if isDigit(l.peekChar()) {
 			tok.Type = token.FLOAT
-			tok.Literal = l.readFloatFromPosition(l.position)
+			tok.Literal = l.readFloat()
 			return tok
 		} else {
 			tok = newToken(token.DOT, l.ch)
@@ -225,8 +225,13 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = literal
 			return tok
 		} else if isDigit(l.ch) {
-			tok.Type = token.INT
-			tok.Literal = l.readNumber()
+			if l.peekChar() == '.' || l.peekChar() == 'e' || l.peekChar() == 'E' {
+				tok.Type = token.FLOAT
+				tok.Literal = l.readFloat()
+			} else {
+				tok.Type = token.INT
+				tok.Literal = l.readNumber()
+			}
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.ch)
@@ -273,33 +278,26 @@ func (l *Lexer) readNumber() string {
 	for isDigit(l.ch) {
 		l.readChar()
 	}
-	// Check for fractional part or scientific notation
-	if l.ch == '.' || l.ch == 'e' || l.ch == 'E' {
-		return l.readFloatFromPosition(position)
-	}
 	return l.input[position:l.position]
 }
 
-// readFloatFromPosition reads a float from the input starting at a given position
-func (l *Lexer) readFloatFromPosition(position int) string {
-	if l.ch == '.' {
-		l.readChar()
-	}
-	for isDigit(l.ch) || l.ch == 'e' || l.ch == 'E' {
+// readFloat reads a float from the input, including scientific notation
+func (l *Lexer) readFloat() string {
+	position := l.position
+	hasExponent := false
+
+	for isDigit(l.ch) || l.ch == '.' || (l.ch == 'e' || l.ch == 'E') && !hasExponent {
 		if l.ch == 'e' || l.ch == 'E' {
+			hasExponent = true
 			l.readChar()
-			// After 'e' or 'E', we expect an optional '+' or '-' followed by digits
 			if l.ch == '+' || l.ch == '-' {
 				l.readChar()
-			}
-			if !isDigit(l.ch) {
-				// Invalid scientific notation, return error
-				return ""
 			}
 		} else {
 			l.readChar()
 		}
 	}
+
 	return l.input[position:l.position]
 }
 
