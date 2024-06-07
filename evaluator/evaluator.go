@@ -230,10 +230,6 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
 	switch {
-	case operator == "&&":
-		return evalLogicalAndExpression(left, right)
-	case operator == "||":
-		return evalLogicalOrExpression(left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
@@ -248,12 +244,26 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return evalHashInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		return evalStringInfixExpression(operator, left, right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ:
+		if operator == "*" {
+			return &object.String{Value: strings.Repeat(left.(*object.String).Value, int(right.(*object.Integer).Value.Int64()))}
+		}
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	case left.Type() == object.INTEGER_OBJ && right.Type() == object.STRING_OBJ:
+		if operator == "*" {
+			return &object.String{Value: strings.Repeat(right.(*object.String).Value, int(left.(*object.Integer).Value.Int64()))}
+		}
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	case left.Type() == object.ARRAY_OBJ && right.Type() == object.ARRAY_OBJ:
 		return evalArrayInfixExpression(operator, left, right)
 	case operator == "==":
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
 		return nativeBoolToBooleanObject(left != right)
+	case operator == "&&":
+		return evalLogicalAndExpression(left, right)
+	case operator == "||":
+		return evalLogicalOrExpression(left, right)
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	default:
@@ -789,6 +799,9 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 	rightArr := right.(*object.Array)
 
 	switch operator {
+	case "+":
+		elements := append(leftArr.Elements, rightArr.Elements...)
+		return &object.Array{Elements: elements}
 	case "==":
 		return nativeBoolToBooleanObject(object.IsEqual(leftArr, rightArr))
 	case "!=":

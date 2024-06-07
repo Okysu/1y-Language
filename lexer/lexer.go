@@ -211,7 +211,13 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.LT, l.ch)
 		}
 	case '.':
-		tok = newToken(token.DOT, l.ch)
+		if isDigit(l.peekChar()) {
+			tok.Type = token.FLOAT
+			tok.Literal = l.readFloatFromPosition(l.position)
+			return tok
+		} else {
+			tok = newToken(token.DOT, l.ch)
+		}
 	default:
 		if isLetter(l.ch) {
 			literal := l.readIdentifier()
@@ -219,13 +225,8 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = literal
 			return tok
 		} else if isDigit(l.ch) {
-			if l.peekChar() == '.' {
-				tok.Type = token.FLOAT
-				tok.Literal = l.readFloat()
-			} else {
-				tok.Type = token.INT
-				tok.Literal = l.readNumber()
-			}
+			tok.Type = token.INT
+			tok.Literal = l.readNumber()
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.ch)
@@ -272,6 +273,33 @@ func (l *Lexer) readNumber() string {
 	for isDigit(l.ch) {
 		l.readChar()
 	}
+	// Check for fractional part or scientific notation
+	if l.ch == '.' || l.ch == 'e' || l.ch == 'E' {
+		return l.readFloatFromPosition(position)
+	}
+	return l.input[position:l.position]
+}
+
+// readFloatFromPosition reads a float from the input starting at a given position
+func (l *Lexer) readFloatFromPosition(position int) string {
+	if l.ch == '.' {
+		l.readChar()
+	}
+	for isDigit(l.ch) || l.ch == 'e' || l.ch == 'E' {
+		if l.ch == 'e' || l.ch == 'E' {
+			l.readChar()
+			// After 'e' or 'E', we expect an optional '+' or '-' followed by digits
+			if l.ch == '+' || l.ch == '-' {
+				l.readChar()
+			}
+			if !isDigit(l.ch) {
+				// Invalid scientific notation, return error
+				return ""
+			}
+		} else {
+			l.readChar()
+		}
+	}
 	return l.input[position:l.position]
 }
 
@@ -296,15 +324,6 @@ func (l *Lexer) readString() string {
 		if l.ch == '"' || l.ch == 0 {
 			break
 		}
-	}
-	return l.input[position:l.position]
-}
-
-// readFloat reads a float from the input
-func (l *Lexer) readFloat() string {
-	position := l.position
-	for isDigit(l.ch) || l.ch == '.' {
-		l.readChar()
 	}
 	return l.input[position:l.position]
 }

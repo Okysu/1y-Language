@@ -1142,3 +1142,36 @@ func TestPowStatements(t *testing.T){
 		return
 	}
 }
+
+func TestScientificNotation(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected float64
+	}{
+		{"1e9", 1e9},
+		{"1e-9", 1e-9},
+		{"1.23e3", 1.23e3},
+		{"1.23e-3", 1.23e-3},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+
+		if len(p.Errors()) > 0 {
+			t.Fatalf("parser errors: %v", p.Errors())
+		}
+
+		stmt := program.Statements[0].(*ast.ExpressionStatement)
+		literal, ok := stmt.Expression.(*ast.FloatLiteral)
+		if !ok {
+			t.Fatalf("expected *ast.FloatLiteral, got %T", stmt.Expression)
+		}
+
+		actual, _ := literal.Value.Float64()
+		if actual != tt.expected {
+			t.Errorf("expected %f, got %f", tt.expected, actual)
+		}
+	}
+}

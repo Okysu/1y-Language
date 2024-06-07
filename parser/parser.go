@@ -274,25 +274,33 @@ func (p *Parser) parseIdentifier() ast.Expression {
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
+	// Try to parse as integer first
 	value := new(big.Int)
 	_, ok := value.SetString(p.curToken.Literal, 0)
-	if !ok {
-		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
-		p.errors = append(p.errors, msg)
-		return nil
+	if ok {
+		lit.Value = value
+		return lit
 	}
 
-	lit.Value = value
-	return lit
+	// If parsing as integer fails, try to parse as float (scientific notation)
+	floatValue, _, err := big.ParseFloat(p.curToken.Literal, 10, 256, big.ToNearestEven)
+	if err == nil {
+		return &ast.FloatLiteral{Token: p.curToken, Value: floatValue}
+	}
+
+	msg := fmt.Sprintf("could not parse %q as integer or float", p.curToken.Literal)
+	p.errors = append(p.errors, msg)
+	return nil
 }
+
 
 func (p *Parser) parseFloatLiteral() ast.Expression {
 	lit := &ast.FloatLiteral{Token: p.curToken}
 
-	value := new(big.Float)
-	_, _, err := value.Parse(p.curToken.Literal, 10)
+	// Convert the scientific notation to a float
+	value, _, err := big.ParseFloat(p.curToken.Literal, 10, 256, big.ToNearestEven)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float", p.curToken.Literal)
+		msg := fmt.Sprintf("could not parse %q as float: %v", p.curToken.Literal, err)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -408,62 +416,58 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken}
 
 	if !p.expectPeek(token.LPAREN) {
-			return nil
+		return nil
 	}
 
 	p.nextToken()
 	expression.Condition = p.parseExpression(LOWEST)
 
 	if !p.expectPeek(token.RPAREN) {
-			return nil
+		return nil
 	}
 
 	if !p.expectPeek(token.LBRACE) {
-			return nil
+		return nil
 	}
 
 	expression.Consequence = p.parseBlockStatement()
 
 	for p.peekTokenIs(token.ELIF) {
-			p.nextToken() // consume 'elif'
+		p.nextToken() // consume 'elif'
 
-			elif := &ast.ElifExpression{}
+		elif := &ast.ElifExpression{}
 
-			if !p.expectPeek(token.LPAREN) {
-					return nil
-			}
+		if !p.expectPeek(token.LPAREN) {
+			return nil
+		}
 
-			p.nextToken()
-			elif.Condition = p.parseExpression(LOWEST)
+		p.nextToken()
+		elif.Condition = p.parseExpression(LOWEST)
 
-			if !p.expectPeek(token.RPAREN) {
-					return nil
-			}
+		if !p.expectPeek(token.RPAREN) {
+			return nil
+		}
 
-			if !p.expectPeek(token.LBRACE) {
-					return nil
-			}
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
 
-			elif.Consequence = p.parseBlockStatement()
-			expression.Elifs = append(expression.Elifs, elif)
+		elif.Consequence = p.parseBlockStatement()
+		expression.Elifs = append(expression.Elifs, elif)
 	}
 
 	if p.peekTokenIs(token.ELSE) {
-			p.nextToken()
+		p.nextToken()
 
-			if !p.expectPeek(token.LBRACE) {
-					return nil
-			}
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
 
-			expression.Alternative = p.parseBlockStatement()
+		expression.Alternative = p.parseBlockStatement()
 	}
 
 	return expression
 }
-
-
-
-
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.curToken}
