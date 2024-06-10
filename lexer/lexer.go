@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"1ylang/token"
+	"strings"
 )
 
 type Lexer struct {
@@ -211,13 +212,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.LT, l.ch)
 		}
 	case '.':
-		if isDigit(l.peekChar()) {
-			tok.Type = token.FLOAT
-			tok.Literal = l.readFloat()
-			return tok
-		} else {
-			tok = newToken(token.DOT, l.ch)
-		}
+		tok = newToken(token.DOT, l.ch)
 	default:
 		if isLetter(l.ch) {
 			literal := l.readIdentifier()
@@ -225,12 +220,11 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = literal
 			return tok
 		} else if isDigit(l.ch) {
-			if l.peekChar() == '.' || l.peekChar() == 'e' || l.peekChar() == 'E' {
+			tok.Literal = l.readNumberOrFloat()
+			if strings.Contains(tok.Literal, ".") || strings.ContainsAny(tok.Literal, "eE") {
 				tok.Type = token.FLOAT
-				tok.Literal = l.readFloat()
 			} else {
 				tok.Type = token.INT
-				tok.Literal = l.readNumber()
 			}
 			return tok
 		} else {
@@ -272,33 +266,43 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
-// readNumber reads a number from the input
-func (l *Lexer) readNumber() string {
+// readNumberOrFloat reads a number or float from the input
+// readNumberOrFloat reads a number or a float from the input
+func (l *Lexer) readNumberOrFloat() string {
 	position := l.position
+	isFloat := false
+
+	// Read integer part
 	for isDigit(l.ch) {
 		l.readChar()
 	}
-	return l.input[position:l.position]
-}
 
-// readFloat reads a float from the input, including scientific notation
-func (l *Lexer) readFloat() string {
-	position := l.position
-	hasExponent := false
-
-	for isDigit(l.ch) || l.ch == '.' || (l.ch == 'e' || l.ch == 'E') && !hasExponent {
-		if l.ch == 'e' || l.ch == 'E' {
-			hasExponent = true
-			l.readChar()
-			if l.ch == '+' || l.ch == '-' {
-				l.readChar()
-			}
-		} else {
+	// Read decimal part
+	if l.ch == '.' {
+		isFloat = true
+		l.readChar()
+		for isDigit(l.ch) {
 			l.readChar()
 		}
 	}
 
-	return l.input[position:l.position]
+	// Read exponent part
+	if l.ch == 'e' || l.ch == 'E' {
+		isFloat = true
+		l.readChar()
+		if l.ch == '+' || l.ch == '-' {
+			l.readChar()
+		}
+		for isDigit(l.ch) {
+			l.readChar()
+		}
+	}
+
+	if isFloat {
+		return l.input[position:l.position]
+	} else {
+		return l.input[position:l.position]
+	}
 }
 
 // isDigit checks if a character is a digit

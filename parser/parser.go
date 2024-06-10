@@ -49,6 +49,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.IMPORT, p.parseImportExpression)
+	p.registerPrefix(token.DOT, p.parseQuickFloatLiteral)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -294,7 +295,6 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	return nil
 }
 
-
 func (p *Parser) parseFloatLiteral() ast.Expression {
 	lit := &ast.FloatLiteral{Token: p.curToken}
 
@@ -325,7 +325,6 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 	lit.Value = value
 	return lit
 }
-
 
 func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
@@ -756,4 +755,14 @@ func (p *Parser) parseImportExpression() ast.Expression {
 	}
 
 	return expression
+}
+
+func (p *Parser) parseQuickFloatLiteral() ast.Expression {
+	p.nextToken() // consume the '.'
+	val, ok := new(big.Float).SetString("0." + p.curToken.Literal)
+	if !ok {
+		p.errors = append(p.errors, fmt.Sprintf("could not parse %q as float", p.curToken.Literal))
+		return nil
+	}
+	return &ast.FloatLiteral{Token: p.curToken, Value: val}
 }
