@@ -4,8 +4,6 @@ import (
 	"1ylang/object"
 	"fmt"
 	"math/big"
-	"math/rand"
-	"strings"
 )
 
 // newBuiltin is a helper function to create a new builtin function object.
@@ -99,6 +97,24 @@ var builtins = map[string]*object.Builtin{
 		// Return the modified array
 		return arr
 	}),
+	"pop": newBuiltin(func(args ...object.Object) object.Object {
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		if args[0].Type() != object.ARRAY_OBJ {
+			return newError("argument to `pop` must be ARRAY, got %s", args[0].Type())
+		}
+
+		arr := args[0].(*object.Array)
+		length := len(arr.Elements)
+		if length > 0 {
+			popped := arr.Elements[length-1]
+			arr.Elements = arr.Elements[:length-1]
+			return popped
+		}
+
+		return NULL
+	}),
 	"concat": newBuiltin(func(args ...object.Object) object.Object {
 		if len(args) < 2 {
 			return newError("wrong number of arguments. got=%d, want=2+", len(args))
@@ -117,46 +133,6 @@ var builtins = map[string]*object.Builtin{
 
 		return &object.Array{Elements: newElements}
 	}),
-	"range": newBuiltin(func(args ...object.Object) object.Object {
-		if len(args) != 2 {
-			return newError("wrong number of arguments. got=%d, want=2", len(args))
-		}
-		if args[0].Type() != object.INTEGER_OBJ || args[1].Type() != object.INTEGER_OBJ {
-			return newError("arguments to `range` must be INTEGER, got %s and %s", args[0].Type(), args[1].Type())
-		}
-
-		start := args[0].(*object.Integer).Value
-		end := args[1].(*object.Integer).Value
-
-		if start.Cmp(end) > 0 {
-			return newError("start index cannot be greater than end index")
-		}
-
-		newElements := []object.Object{}
-		for i := new(big.Int).Set(start); i.Cmp(end) < 0; i.Add(i, big.NewInt(1)) {
-			newElements = append(newElements, &object.Integer{Value: new(big.Int).Set(i)})
-		}
-
-		return &object.Array{Elements: newElements}
-	}),
-	"random": newBuiltin(func(args ...object.Object) object.Object {
-		if len(args) == 1 {
-			if args[0].Type() != object.INTEGER_OBJ {
-				return newError("argument to `random` must be INTEGER, got %s", args[0].Type())
-			}
-			max := args[0].(*object.Integer).Value
-			return &object.Integer{Value: big.NewInt(rand.Int63n(max.Int64()))}
-		} else if len(args) == 2 {
-			if args[0].Type() != object.INTEGER_OBJ || args[1].Type() != object.INTEGER_OBJ {
-				return newError("arguments to `random` must be INTEGER, got %s and %s", args[0].Type(), args[1].Type())
-			}
-			min := args[0].(*object.Integer).Value
-			max := args[1].(*object.Integer).Value
-			return &object.Integer{Value: big.NewInt(rand.Int63n(max.Int64()-min.Int64()) + min.Int64())}
-		} else {
-			return newError("wrong number of arguments. got=%d, want=1 or 2", len(args))
-		}
-	}),
 	"input": newBuiltin(func(args ...object.Object) object.Object {
 		if len(args) == 1 {
 			fmt.Print(args[0].Inspect())
@@ -167,41 +143,6 @@ var builtins = map[string]*object.Builtin{
 		var input string
 		fmt.Scanln(&input)
 		return &object.String{Value: input}
-	}),
-	"sprintf": newBuiltin(func(args ...object.Object) object.Object {
-		if len(args) == 0 {
-			return newError("wrong number of arguments. got=%d, want=1+", len(args))
-		}
-
-		format, ok := args[0].(*object.String)
-		if !ok {
-			return newError("first argument to `sprintf` must be STRING, got %s", args[0].Type())
-		}
-
-		values := make([]interface{}, len(args)-1)
-		for i, arg := range args[1:] {
-			values[i] = arg.Inspect()
-		}
-
-		return &object.String{Value: fmt.Sprintf(format.Value, values...)}
-	}),
-	"split": newBuiltin(func(args ...object.Object) object.Object {
-		if len(args) != 2 {
-			return newError("wrong number of arguments. got=%d, want=2", len(args))
-		}
-		if args[0].Type() != object.STRING_OBJ || args[1].Type() != object.STRING_OBJ {
-			return newError("arguments to `split` must be STRING, got %s and %s", args[0].Type(), args[1].Type())
-		}
-
-		str := args[0].(*object.String).Value
-		sep := args[1].(*object.String).Value
-
-		splitted := []object.Object{}
-		for _, s := range strings.Split(str, sep) {
-			splitted = append(splitted, &object.String{Value: s})
-		}
-
-		return &object.Array{Elements: splitted}
 	}),
 	"int": newBuiltin(func(args ...object.Object) object.Object {
 		if len(args) != 1 {

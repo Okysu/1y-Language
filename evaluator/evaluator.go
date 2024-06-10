@@ -239,27 +239,31 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
 		return evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalMixedInfixExpression(operator, new(big.Float).SetInt(left.(*object.Integer).Value), right.(*object.Float).Value)
+		return evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return evalMixedInfixExpression(operator, left.(*object.Float).Value, new(big.Float).SetInt(right.(*object.Integer).Value))
+		return evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(operator, left, right)
 	case left.Type() == object.HASH_OBJ && right.Type() == object.HASH_OBJ:
 		return evalHashInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		return evalStringInfixExpression(operator, left, right)
-	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ || left.Type() == object.INTEGER_OBJ && right.Type() == object.STRING_OBJ:
 		if operator == "*" {
 			return &object.String{Value: strings.Repeat(left.(*object.String).Value, int(right.(*object.Integer).Value.Int64()))}
 		}
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.STRING_OBJ:
-		if operator == "*" {
-			return &object.String{Value: strings.Repeat(right.(*object.String).Value, int(left.(*object.Integer).Value.Int64()))}
-		}
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	case left.Type() == object.ARRAY_OBJ && right.Type() == object.ARRAY_OBJ:
 		return evalArrayInfixExpression(operator, left, right)
+	case left.Type() == object.ARRAY_OBJ && right.Type() == object.INTEGER_OBJ || left.Type() == object.INTEGER_OBJ && right.Type() == object.ARRAY_OBJ:
+		if operator == "*" {
+			elements := make([]object.Object, 0)
+			for i := 0; i < int(right.(*object.Integer).Value.Int64()); i++ {
+				elements = append(elements, left.(*object.Array).Elements...)
+			}
+			return &object.Array{Elements: elements}
+		}
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	case operator == "==":
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
@@ -309,21 +313,9 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		}
 		return &object.Integer{Value: new(big.Int).Mod(leftVal, rightVal)}
 	case "**":
-		leftFloat := new(big.Float).SetInt(leftVal)
-		rightFloat := new(big.Float).SetInt(rightVal)
-		result := new(big.Float).SetPrec(512).SetMode(big.ToZero)
-		floatResult, _ := leftFloat.Float64()
-		rightResult, _ := rightFloat.Float64()
-		result = result.SetFloat64(math.Pow(floatResult, rightResult))
-		return &object.Float{Value: result}
+		return &object.Float{Value: bigFloatPow(new(big.Float).SetInt(leftVal), new(big.Float).SetInt(rightVal))}
 	case "**=":
-		leftFloat := new(big.Float).SetInt(leftVal)
-		rightFloat := new(big.Float).SetInt(rightVal)
-		result := new(big.Float).SetPrec(512).SetMode(big.ToZero)
-		floatResult, _ := leftFloat.Float64()
-		rightResult, _ := rightFloat.Float64()
-		result = result.SetFloat64(math.Pow(floatResult, rightResult))
-		return &object.Float{Value: result}
+		return &object.Float{Value: bigFloatPow(new(big.Float).SetInt(leftVal), new(big.Float).SetInt(rightVal))}
 	case "<":
 		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
@@ -361,7 +353,25 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	}
 }
 
+func bigFloatPow(x, y *big.Float) *big.Float {
+	xVal, _ := x.Float64()
+	yVal, _ := y.Float64()
+	return new(big.Float).SetFloat64(math.Pow(xVal, yVal))
+}
+
 func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
+	if left.Type() == object.INTEGER_OBJ {
+		left = &object.Float{Value: new(big.Float).SetInt(left.(*object.Integer).Value)}
+	} else {
+		left = &object.Float{Value: left.(*object.Float).Value}
+	}
+
+	if right.Type() == object.INTEGER_OBJ {
+		right = &object.Float{Value: new(big.Float).SetInt(right.(*object.Integer).Value)}
+	} else {
+		right = &object.Float{Value: right.(*object.Float).Value}
+	}
+
 	leftVal := left.(*object.Float).Value
 	rightVal := right.(*object.Float).Value
 
@@ -370,15 +380,30 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 	switch operator {
 	case "+":
 		result.Add(leftVal, rightVal)
+	case "+=":
+		result.Add(leftVal, rightVal)
 	case "-":
 		result.Sub(leftVal, rightVal)
+	case "-=":
+		result.Sub(leftVal, rightVal)
 	case "*":
+		result.Mul(leftVal, rightVal)
+	case "*=":
 		result.Mul(leftVal, rightVal)
 	case "/":
 		if rightVal.Cmp(big.NewFloat(0)) == 0 {
 			return newError("division by zero")
 		}
 		result.Quo(leftVal, rightVal)
+	case "/=":
+		if rightVal.Cmp(big.NewFloat(0)) == 0 {
+			return newError("division by zero")
+		}
+		result.Quo(leftVal, rightVal)
+	case "**":
+		result = bigFloatPow(leftVal, rightVal)
+	case "**=":
+		result = bigFloatPow(leftVal, rightVal)
 	case "<":
 		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
@@ -393,40 +418,6 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) <= 0)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
-	}
-
-	return &object.Float{Value: result}
-}
-
-func evalMixedInfixExpression(operator string, leftVal, rightVal *big.Float) object.Object {
-	result := new(big.Float)
-
-	switch operator {
-	case "+":
-		result.Add(leftVal, rightVal)
-	case "-":
-		result.Sub(leftVal, rightVal)
-	case "*":
-		result.Mul(leftVal, rightVal)
-	case "/":
-		if rightVal.Cmp(big.NewFloat(0)) == 0 {
-			return newError("division by zero")
-		}
-		result.Quo(leftVal, rightVal)
-	case "<":
-		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
-	case ">":
-		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) > 0)
-	case "==":
-		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) == 0)
-	case "!=":
-		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) != 0)
-	case ">=":
-		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) >= 0)
-	case "<=":
-		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) <= 0)
-	default:
-		return newError("unknown operator: %s %s %s", "FLOAT", operator, "FLOAT")
 	}
 
 	return &object.Float{Value: result}

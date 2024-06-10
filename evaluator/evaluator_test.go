@@ -669,7 +669,7 @@ func TestPowerOperatorStatements(t *testing.T) {
 
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
-		testFloatObject(t, evaluated, float64(tt.expected))
+		testFloatObject(t, evaluated, tt.expected)
 	}
 }
 
