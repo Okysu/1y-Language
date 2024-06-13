@@ -229,7 +229,6 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
-	println(left.Type(), operator, right.Type())
 	switch {
 	case operator == "&&":
 		return evalLogicalAndExpression(left, right)
