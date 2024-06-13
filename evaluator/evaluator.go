@@ -229,6 +229,7 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
+	println(left.Type(), operator, right.Type())
 	switch {
 	case operator == "&&":
 		return evalLogicalAndExpression(left, right)
@@ -283,15 +284,21 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "+":
 		return &object.Integer{Value: new(big.Int).Add(leftVal, rightVal)}
 	case "+=":
-		return &object.Integer{Value: new(big.Int).Add(leftVal, rightVal)}
+		result := new(big.Int).Add(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "-":
 		return &object.Integer{Value: new(big.Int).Sub(leftVal, rightVal)}
 	case "-=":
-		return &object.Integer{Value: new(big.Int).Sub(leftVal, rightVal)}
+		result := new(big.Int).Sub(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "*":
 		return &object.Integer{Value: new(big.Int).Mul(leftVal, rightVal)}
 	case "*=":
-		return &object.Integer{Value: new(big.Int).Mul(leftVal, rightVal)}
+		result := new(big.Int).Mul(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "/":
 		if rightVal.Cmp(big.NewInt(0)) == 0 {
 			return newError("division by zero")
@@ -301,7 +308,9 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		if rightVal.Cmp(big.NewInt(0)) == 0 {
 			return newError("division by zero")
 		}
-		return &object.Integer{Value: new(big.Int).Div(leftVal, rightVal)}
+		result := new(big.Int).Div(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "%":
 		if rightVal.Cmp(big.NewInt(0)) == 0 {
 			return newError("modulus by zero")
@@ -311,11 +320,15 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		if rightVal.Cmp(big.NewInt(0)) == 0 {
 			return newError("modulus by zero")
 		}
-		return &object.Integer{Value: new(big.Int).Mod(leftVal, rightVal)}
+		result := new(big.Int).Mod(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "**":
 		return &object.Float{Value: bigFloatPow(new(big.Float).SetInt(leftVal), new(big.Float).SetInt(rightVal))}
 	case "**=":
-		return &object.Float{Value: bigFloatPow(new(big.Float).SetInt(leftVal), new(big.Float).SetInt(rightVal))}
+		result := bigFloatPow(new(big.Float).SetInt(leftVal), new(big.Float).SetInt(rightVal))
+		left = &object.Float{Value: result}
+		return &object.Float{Value: result}
 	case "<":
 		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
@@ -331,23 +344,33 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "&":
 		return &object.Integer{Value: new(big.Int).And(leftVal, rightVal)}
 	case "&=":
-		return &object.Integer{Value: new(big.Int).And(leftVal, rightVal)}
+		result := new(big.Int).And(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "|":
 		return &object.Integer{Value: new(big.Int).Or(leftVal, rightVal)}
 	case "|=":
-		return &object.Integer{Value: new(big.Int).Or(leftVal, rightVal)}
+		result := new(big.Int).Or(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "^":
 		return &object.Integer{Value: new(big.Int).Xor(leftVal, rightVal)}
 	case "^=":
-		return &object.Integer{Value: new(big.Int).Xor(leftVal, rightVal)}
+		result := new(big.Int).Xor(leftVal, rightVal)
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case ">>":
 		return &object.Integer{Value: new(big.Int).Rsh(leftVal, uint(rightVal.Int64()))}
 	case ">>=":
-		return &object.Integer{Value: new(big.Int).Rsh(leftVal, uint(rightVal.Int64()))}
+		result := new(big.Int).Rsh(leftVal, uint(rightVal.Int64()))
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	case "<<":
 		return &object.Integer{Value: new(big.Int).Lsh(leftVal, uint(rightVal.Int64()))}
 	case "<<=":
-		return &object.Integer{Value: new(big.Int).Lsh(leftVal, uint(rightVal.Int64()))}
+		result := new(big.Int).Lsh(leftVal, uint(rightVal.Int64()))
+		leftVal.Set(result)
+		return &object.Integer{Value: result}
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -360,20 +383,22 @@ func bigFloatPow(x, y *big.Float) *big.Float {
 }
 
 func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
+	leftCopy := &object.Float{}
 	if left.Type() == object.INTEGER_OBJ {
-		left = &object.Float{Value: new(big.Float).SetInt(left.(*object.Integer).Value)}
+		leftCopy = &object.Float{Value: new(big.Float).SetInt(left.(*object.Integer).Value)}
 	} else {
-		left = &object.Float{Value: left.(*object.Float).Value}
+		leftCopy = &object.Float{Value: left.(*object.Float).Value}
 	}
 
+	rightCopy := &object.Float{}
 	if right.Type() == object.INTEGER_OBJ {
-		right = &object.Float{Value: new(big.Float).SetInt(right.(*object.Integer).Value)}
+		rightCopy = &object.Float{Value: new(big.Float).SetInt(right.(*object.Integer).Value)}
 	} else {
-		right = &object.Float{Value: right.(*object.Float).Value}
+		rightCopy = &object.Float{Value: right.(*object.Float).Value}
 	}
 
-	leftVal := left.(*object.Float).Value
-	rightVal := right.(*object.Float).Value
+	leftVal := leftCopy.Value
+	rightVal := rightCopy.Value
 
 	result := new(big.Float)
 
@@ -382,14 +407,20 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 		result.Add(leftVal, rightVal)
 	case "+=":
 		result.Add(leftVal, rightVal)
+		leftCopy.Value = result
+		return leftCopy
 	case "-":
 		result.Sub(leftVal, rightVal)
 	case "-=":
 		result.Sub(leftVal, rightVal)
+		leftCopy.Value = result
+		return leftCopy
 	case "*":
 		result.Mul(leftVal, rightVal)
 	case "*=":
 		result.Mul(leftVal, rightVal)
+		leftCopy.Value = result
+		return leftCopy
 	case "/":
 		if rightVal.Cmp(big.NewFloat(0)) == 0 {
 			return newError("division by zero")
@@ -400,10 +431,14 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 			return newError("division by zero")
 		}
 		result.Quo(leftVal, rightVal)
+		leftCopy.Value = result
+		return leftCopy
 	case "**":
 		result = bigFloatPow(leftVal, rightVal)
 	case "**=":
 		result = bigFloatPow(leftVal, rightVal)
+		leftCopy.Value = result
+		return leftCopy
 	case "<":
 		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
@@ -422,6 +457,7 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 
 	return &object.Float{Value: result}
 }
+
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
 	condition := Eval(ie.Condition, env)

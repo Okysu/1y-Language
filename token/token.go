@@ -82,6 +82,7 @@ const (
 	XOR_ASSIGN      = "^="
 	SHL_ASSIGN      = "<<="
 	SHR_ASSIGN      = ">>="
+	POW_ASSIGN      = "**="
 
 	AND_AND = "&&"
 	OR_OR   = "||"

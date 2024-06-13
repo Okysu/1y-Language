@@ -83,6 +83,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.XOR_ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.SHL_ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.SHR_ASSIGN, p.parseInfixExpression)
+	p.registerInfix(token.POW_ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.AND_AND, p.parseInfixExpression)
 	p.registerInfix(token.OR_OR, p.parseInfixExpression)
 	p.registerInfix(token.DOT, p.parseDotExpression)
@@ -237,7 +238,6 @@ const (
 	POW         // **
 	BITWISE     // &, |, ^, >>, <<
 	POSTFIX     // i++
-	ASSIGNMENT  // +=
 	DOT         // .
 	IMPORT      // import("path")
 	SEMICOLON   // ;
@@ -367,16 +367,17 @@ var precedences = map[token.TokenType]int{
 	token.ASSIGN:          ASSIGN,
 	token.LPAREN:          CALL,
 	token.LBRACKET:        INDEX,
-	token.PLUS_ASSIGN:     ASSIGNMENT,
-	token.MINUS_ASSIGN:    ASSIGNMENT,
-	token.ASTERISK_ASSIGN: ASSIGNMENT,
-	token.SLASH_ASSIGN:    ASSIGNMENT,
-	token.MODULUS_ASSIGN:  ASSIGNMENT,
-	token.AND_ASSIGN:      ASSIGNMENT,
-	token.OR_ASSIGN:       ASSIGNMENT,
-	token.XOR_ASSIGN:      ASSIGNMENT,
-	token.SHL_ASSIGN:      ASSIGNMENT,
-	token.SHR_ASSIGN:      ASSIGNMENT,
+	token.PLUS_ASSIGN:     ASSIGN,
+	token.MINUS_ASSIGN:    ASSIGN,
+	token.ASTERISK_ASSIGN: ASSIGN,
+	token.SLASH_ASSIGN:    ASSIGN,
+	token.MODULUS_ASSIGN:  ASSIGN,
+	token.AND_ASSIGN:      ASSIGN,
+	token.OR_ASSIGN:       ASSIGN,
+	token.XOR_ASSIGN:      ASSIGN,
+	token.SHL_ASSIGN:      ASSIGN,
+	token.SHR_ASSIGN:      ASSIGN,
+	token.POW_ASSIGN:      ASSIGN,
 	token.AND_AND:         LOGICAL_AND,
 	token.OR_OR:           LOGICAL_OR,
 	token.DOT:             DOT,
