@@ -224,6 +224,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 const (
 	_ int = iota
 	LOWEST
+	OP_ASSIGN   // +=, -=, *=, /=
 	ASSIGN      // =
 	LOGICAL_OR  // ||
 	LOGICAL_AND // &&
@@ -367,17 +368,17 @@ var precedences = map[token.TokenType]int{
 	token.ASSIGN:          ASSIGN,
 	token.LPAREN:          CALL,
 	token.LBRACKET:        INDEX,
-	token.PLUS_ASSIGN:     ASSIGN,
-	token.MINUS_ASSIGN:    ASSIGN,
-	token.ASTERISK_ASSIGN: ASSIGN,
-	token.SLASH_ASSIGN:    ASSIGN,
-	token.MODULUS_ASSIGN:  ASSIGN,
-	token.AND_ASSIGN:      ASSIGN,
-	token.OR_ASSIGN:       ASSIGN,
-	token.XOR_ASSIGN:      ASSIGN,
-	token.SHL_ASSIGN:      ASSIGN,
-	token.SHR_ASSIGN:      ASSIGN,
-	token.POW_ASSIGN:      ASSIGN,
+	token.PLUS_ASSIGN:     OP_ASSIGN,
+	token.MINUS_ASSIGN:    OP_ASSIGN,
+	token.ASTERISK_ASSIGN: OP_ASSIGN,
+	token.SLASH_ASSIGN:    OP_ASSIGN,
+	token.MODULUS_ASSIGN:  OP_ASSIGN,
+	token.AND_ASSIGN:      OP_ASSIGN,
+	token.OR_ASSIGN:       OP_ASSIGN,
+	token.XOR_ASSIGN:      OP_ASSIGN,
+	token.SHL_ASSIGN:      OP_ASSIGN,
+	token.SHR_ASSIGN:      OP_ASSIGN,
+	token.POW_ASSIGN:      OP_ASSIGN,
 	token.AND_AND:         LOGICAL_AND,
 	token.OR_OR:           LOGICAL_OR,
 	token.DOT:             DOT,
@@ -409,10 +410,36 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 	precedence := p.curPrecedence()
 	p.nextToken()
-	expression.Right = p.parseExpression(precedence)
+
+	if isCompoundAssignmentOperator(expression.Operator) {
+		// If it's a compound assignment, treat it as an assignment expression
+		right := p.parseExpression(precedence)
+		return &ast.Assignment{
+			Token: expression.Token,
+			Name:  expression.Left,
+			Value: &ast.InfixExpression{
+				Token:    expression.Token,
+				Operator: expression.Operator[:len(expression.Operator)-1], // Remove the '='
+				Left:     expression.Left,
+				Right:    right,
+			},
+		}
+	} else {
+		expression.Right = p.parseExpression(precedence)
+	}
 
 	return expression
 }
+
+func isCompoundAssignmentOperator(operator string) bool {
+	switch operator {
+	case "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", "**=":
+		return true
+	default:
+		return false
+	}
+}
+
 
 func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}

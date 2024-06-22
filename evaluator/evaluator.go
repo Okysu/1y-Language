@@ -236,11 +236,7 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return evalLogicalOrExpression(left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
-		return evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.FLOAT_OBJ || right.Type() == object.FLOAT_OBJ:
 		return evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(operator, left, right)
@@ -274,6 +270,8 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
+
+
 
 func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Integer).Value
@@ -382,62 +380,25 @@ func bigFloatPow(x, y *big.Float) *big.Float {
 }
 
 func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftCopy := &object.Float{}
-	if left.Type() == object.INTEGER_OBJ {
-		leftCopy = &object.Float{Value: new(big.Float).SetInt(left.(*object.Integer).Value)}
-	} else {
-		leftCopy = &object.Float{Value: left.(*object.Float).Value}
-	}
-
-	rightCopy := &object.Float{}
-	if right.Type() == object.INTEGER_OBJ {
-		rightCopy = &object.Float{Value: new(big.Float).SetInt(right.(*object.Integer).Value)}
-	} else {
-		rightCopy = &object.Float{Value: right.(*object.Float).Value}
-	}
-
-	leftVal := leftCopy.Value
-	rightVal := rightCopy.Value
+	leftVal := toFloat(left)
+	rightVal := toFloat(right)
 
 	result := new(big.Float)
 
 	switch operator {
 	case "+":
 		result.Add(leftVal, rightVal)
-	case "+=":
-		result.Add(leftVal, rightVal)
-		leftCopy.Value = result
-		return leftCopy
 	case "-":
 		result.Sub(leftVal, rightVal)
-	case "-=":
-		result.Sub(leftVal, rightVal)
-		leftCopy.Value = result
-		return leftCopy
 	case "*":
 		result.Mul(leftVal, rightVal)
-	case "*=":
-		result.Mul(leftVal, rightVal)
-		leftCopy.Value = result
-		return leftCopy
 	case "/":
 		if rightVal.Cmp(big.NewFloat(0)) == 0 {
 			return newError("division by zero")
 		}
 		result.Quo(leftVal, rightVal)
-	case "/=":
-		if rightVal.Cmp(big.NewFloat(0)) == 0 {
-			return newError("division by zero")
-		}
-		result.Quo(leftVal, rightVal)
-		leftCopy.Value = result
-		return leftCopy
 	case "**":
 		result = bigFloatPow(leftVal, rightVal)
-	case "**=":
-		result = bigFloatPow(leftVal, rightVal)
-		leftCopy.Value = result
-		return leftCopy
 	case "<":
 		return nativeBoolToBooleanObject(leftVal.Cmp(rightVal) < 0)
 	case ">":
@@ -456,6 +417,18 @@ func evalFloatInfixExpression(operator string, left, right object.Object) object
 
 	return &object.Float{Value: result}
 }
+
+func toFloat(obj object.Object) *big.Float {
+	switch obj := obj.(type) {
+	case *object.Integer:
+		return new(big.Float).SetInt(obj.Value)
+	case *object.Float:
+		return obj.Value
+	default:
+		return new(big.Float)
+	}
+}
+
 
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
