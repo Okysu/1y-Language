@@ -521,6 +521,12 @@ func TestAssignmentStatements(t *testing.T) {
 		{"let a = 5; let b = a; a = 10; b = a; b;", 10},
 		{"let a = 5; let b = a; a = 10; b = a; a;", 10},
 		{"let a = 5; let b = a; a = 10; b = a; a + b;", 20},
+		{"let a = 5; a += 5; a;", 10},
+		{"let a = 5; a -= 5; a;", 0},
+		{"let a = 5; a *= 5; a;", 25},
+		{"let a = 5; a /= 5; a;", 1},
+		{"let a = 5; a %= 5; a;", 0},
+		{"let a = 5; a += 5 * 2; a;", 15},
 	}
 
 	for _, tt := range tests {
