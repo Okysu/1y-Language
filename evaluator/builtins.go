@@ -4,6 +4,7 @@ import (
 	"1ylang/object"
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 // newBuiltin is a helper function to create a new builtin function object.
@@ -135,7 +136,27 @@ var builtins = map[string]*object.Builtin{
 	}),
 	"input": newBuiltin(func(args ...object.Object) object.Object {
 		if len(args) == 1 {
-			fmt.Print(args[0].Inspect())
+			prompt := args[0].Inspect()
+			// Define a map of escape sequences to their actual characters
+			escapeSequences := map[string]string{
+				"\\n":  "\n",
+				"\\t":  "\t",
+				"\\\\": "\\",
+				"\\\"": "\"",
+				"\\'":  "'",
+				"\\r":  "\r",
+				"\\b":  "\b",
+				"\\f":  "\f",
+				"\\v":  "\v",
+			}
+
+			// Replace escape sequences with actual characters
+			for seq, char := range escapeSequences {
+				prompt = strings.ReplaceAll(prompt, seq, char)
+			}
+
+			// Print the prompt
+			fmt.Print(prompt)
 		} else if len(args) > 1 {
 			return newError("wrong number of arguments. got=%d, want=0 or 1", len(args))
 		}
