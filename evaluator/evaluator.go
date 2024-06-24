@@ -123,6 +123,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return evalIndexExpression(left, index)
 
+	case *ast.MultiDimensionalIndex:
+		indices := evalExpressions(node.Indices, env)
+		if len(indices) == 1 && isError(indices[0]) {
+			return indices[0]
+		}
+		return &object.MultiDimensionalIndex{Indices: indices}
+
 	case *ast.Assignment:
 		return evalAssignmentExpression(node, env)
 
@@ -270,8 +277,6 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 }
-
-
 
 func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
 	leftVal := left.(*object.Integer).Value
@@ -428,8 +433,6 @@ func toFloat(obj object.Object) *big.Float {
 		return new(big.Float)
 	}
 }
-
-
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
 	condition := Eval(ie.Condition, env)
@@ -600,6 +603,8 @@ func evalIndexExpression(left, index object.Object) object.Object {
 	switch {
 	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
 		return evalArrayIndexExpression(left, index)
+	case left.Type() == object.ARRAY_OBJ && index.Type() == object.MULTIDIMENSIONAL_INDEX_OBJ:
+		return evalMultiDimensionalIndexExpression(left, index)
 	case left.Type() == object.HASH_OBJ:
 		return evalHashIndexExpression(left, index)
 	case left.Type() == object.STRING_OBJ && index.Type() == object.INTEGER_OBJ:
@@ -608,6 +613,41 @@ func evalIndexExpression(left, index object.Object) object.Object {
 		return newError("index operator not supported: %s", left.Type())
 	}
 }
+
+
+func evalMultiDimensionalIndexExpression(array, index object.Object) object.Object {
+    arrayObj, ok := array.(*object.Array)
+    if !ok {
+        return newError("left object is not an array: %s", array.Type())
+    }
+
+    indexObj, ok := index.(*object.MultiDimensionalIndex)
+    if !ok {
+        return newError("index object is not a multi-dimensional index: %s", index.Type())
+    }
+
+    current := arrayObj
+    for _, idx := range indexObj.Indices {
+        idxVal, ok := idx.(*object.Integer)
+        if !ok {
+            return newError("index is not an integer: %s", idx.Type())
+        }
+
+        if idxVal.Value.Int64() < 0 || idxVal.Value.Int64() >= int64(len(current.Elements)) {
+            return NULL
+        }
+
+        element := current.Elements[idxVal.Value.Int64()]
+        arrayElement, ok := element.(*object.Array)
+        if !ok {
+            return element
+        }
+        current = arrayElement
+    }
+
+    return current
+}
+
 
 func evalArrayIndexExpression(array, index object.Object) object.Object {
 	arrayObj := array.(*object.Array)

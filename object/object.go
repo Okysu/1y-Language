@@ -69,6 +69,9 @@ const (
 
 	BREAK_OBJ    = "BREAK"
 	CONTINUE_OBJ = "CONTINUE"
+
+	SLICE_OBJ                  = "SLICE"
+	MULTIDIMENSIONAL_INDEX_OBJ = "MULTIDIMENSIONAL_INDEX"
 )
 
 // Integer represents an integer object
@@ -346,3 +349,24 @@ type Continue struct{}
 
 func (c *Continue) Type() ObjectType { return CONTINUE_OBJ }
 func (c *Continue) Inspect() string  { return "continue" }
+
+type MultiDimensionalIndex struct {
+	Indices []Object
+}
+
+func (mdi *MultiDimensionalIndex) Inspect() string {
+	var out bytes.Buffer
+
+	for i, idx := range mdi.Indices {
+		if i > 0 {
+			out.WriteString(",")
+		}
+		out.WriteString(idx.Inspect())
+	}
+
+	return out.String()
+}
+
+func (mdi *MultiDimensionalIndex) Type() ObjectType {
+	return MULTIDIMENSIONAL_INDEX_OBJ
+}

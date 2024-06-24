@@ -497,6 +497,10 @@ func TestArrayIndexExpressions(t *testing.T) {
 			"[1, 2, 3][-1]",
 			nil,
 		},
+		{
+			"let a = [[1,2],[3,4]]; a[1,1];",
+			4,
+		},
 	}
 
 	for _, tt := range tests {

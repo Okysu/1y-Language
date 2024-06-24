@@ -476,3 +476,22 @@ func (ie *ImportExpression) String() string {
 	out.WriteString(")")
 	return out.String()
 }
+
+type MultiDimensionalIndex struct {
+	Indices []Expression
+}
+
+func (mdi *MultiDimensionalIndex) expressionNode()      {}
+func (mdi *MultiDimensionalIndex) TokenLiteral() string { return "" }
+func (mdi *MultiDimensionalIndex) String() string {
+	var out bytes.Buffer
+
+	for i, idx := range mdi.Indices {
+			if i > 0 {
+					out.WriteString(",")
+			}
+			out.WriteString(idx.String())
+	}
+
+	return out.String()
+}

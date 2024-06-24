@@ -623,8 +623,18 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	p.nextToken()
 	exp.Index = p.parseExpression(LOWEST)
 
+	if p.peekTokenIs(token.COMMA) {
+			indices := []ast.Expression{exp.Index}
+			for p.peekTokenIs(token.COMMA) {
+					p.nextToken()
+					p.nextToken()
+					indices = append(indices, p.parseExpression(LOWEST))
+			}
+			exp.Index = &ast.MultiDimensionalIndex{Indices: indices}
+	}
+
 	if !p.expectPeek(token.RBRACKET) {
-		return nil
+			return nil
 	}
 
 	return exp
