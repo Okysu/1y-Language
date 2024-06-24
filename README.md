@@ -64,7 +64,9 @@ quick_sort([3, 6, 8, 10, 1, 2, 1]);
 To run the interpreter in REPL mode or to execute a file, use the following command:
 
 ```bash
-go run main.go demo.1y
+go run main.go -f <file_path> -t
 ```
+
+`t` is an optional parameter that enables the time measurement of the execution process.
 
 This project aims to provide a learning platform for building interpreters and understanding the intricacies of programming language design. Contributions and feedback are welcome!
