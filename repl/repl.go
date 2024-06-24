@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func initEnv() *object.Environment {
@@ -31,7 +32,7 @@ func initEnv() *object.Environment {
 const PROMPT = ">> "
 
 // Start starts the REPL
-func Start(in io.Reader, out io.Writer) {
+func Start(in io.Reader, out io.Writer, timed bool) {
 	scanner := bufio.NewScanner(in)
 	env := initEnv()
 
@@ -50,20 +51,7 @@ func Start(in io.Reader, out io.Writer) {
 			return
 		}
 
-		l := lexer.New(line)
-		p := parser.New(l)
-
-		program := p.ParseProgram()
-		if len(p.Errors()) != 0 {
-			printParserErrors(out, p.Errors())
-			continue
-		}
-
-		evaluated := evaluator.Eval(program, env)
-		if evaluated != nil && evaluated.Type() != object.NULL_OBJ {
-			io.WriteString(out, evaluated.Inspect())
-			io.WriteString(out, "\n")
-		}
+		executeLine(out, line, env, timed)
 	}
 }
 
@@ -73,10 +61,20 @@ func printParserErrors(out io.Writer, errors []string) {
 	}
 }
 
-func StartWithString(out io.Writer, input string) {
+// StartWithString executes a given input string
+func StartWithString(out io.Writer, input string, timed bool) {
 	env := initEnv()
+	executeLine(out, input, env, timed)
+}
 
-	l := lexer.New(input)
+// executeLine executes a single line of input and optionally times it
+func executeLine(out io.Writer, line string, env *object.Environment, timed bool) {
+	var startTime time.Time
+	if timed {
+		startTime = time.Now()
+	}
+
+	l := lexer.New(line)
 	p := parser.New(l)
 
 	program := p.ParseProgram()
@@ -90,5 +88,9 @@ func StartWithString(out io.Writer, input string) {
 		io.WriteString(out, evaluated.Inspect())
 		io.WriteString(out, "\n")
 	}
-}
 
+	if timed {
+		duration := time.Since(startTime)
+		fmt.Fprintf(out, "Execution time: %v\n", duration)
+	}
+}
