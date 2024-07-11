@@ -28,9 +28,13 @@ var builtins = map[string]*object.Builtin{
 		}
 	}),
 	"puts": newBuiltin(func(args ...object.Object) object.Object {
-		for _, arg := range args {
-			fmt.Println(arg.Inspect())
+		for index, arg := range args {
+			if index > 0 {
+				fmt.Print(" ")
+			}
+			fmt.Print(arg.Inspect())
 		}
+		fmt.Println()
 		return NULL
 	}),
 	"first": newBuiltin(func(args ...object.Object) object.Object {

@@ -126,12 +126,8 @@ func createBuiltinFunction(fn interface{}) BuiltinFunction {
 
 		in := make([]reflect.Value, len(args))
 		for i, arg := range args {
-			switch v := arg.(type) {
-			case *Integer:
-				in[i] = reflect.ValueOf(float64(v.Value.Int64()))
-			case *Float:
-				in[i] = reflect.ValueOf(v.Value)
-			default:
+			in[i] = convertToReflectValue(arg, fnType.In(i))
+			if !in[i].IsValid() {
 				return newError("unsupported argument type: %s", arg.Type())
 			}
 		}
@@ -141,11 +137,49 @@ func createBuiltinFunction(fn interface{}) BuiltinFunction {
 			return newError("unexpected number of return values")
 		}
 
-		switch v := out[0].Interface().(type) {
-		case float64:
-			return &Float{Value: big.NewFloat(v)}
-		default:
-			return newError("unsupported return type")
+		return convertFromReflectValue(out[0])
+	}
+}
+
+func convertToReflectValue(arg Object, targetType reflect.Type) reflect.Value {
+	switch v := arg.(type) {
+	case *Integer:
+		if targetType.Kind() == reflect.Float64 {
+			return reflect.ValueOf(float64(v.Value.Int64()))
 		}
+		return reflect.ValueOf(v.Value)
+	case *Float:
+		return reflect.ValueOf(v.Value)
+	case *String:
+		return reflect.ValueOf(v.Value)
+	case *Array:
+		if targetType.Kind() == reflect.Slice {
+			elements := make([]interface{}, len(v.Elements))
+			for i, elem := range v.Elements {
+				elements[i] = convertToReflectValue(elem, targetType.Elem()).Interface()
+			}
+			return reflect.ValueOf(elements)
+		}
+	default:
+		return reflect.Value{}
+	}
+
+	return reflect.Value{}
+}
+
+func convertFromReflectValue(val reflect.Value) Object {
+	switch val.Kind() {
+	case reflect.Float64:
+		return &Float{Value: big.NewFloat(val.Float())}
+	case reflect.String:
+		return &String{Value: val.String()}
+	case reflect.Slice:
+		elements := make([]Object, val.Len())
+		for i := 0; i < val.Len(); i++ {
+			elements[i] = convertFromReflectValue(val.Index(i))
+		}
+		return &Array{Elements: elements}
+	default:
+		return newError("unsupported return type")
 	}
 }

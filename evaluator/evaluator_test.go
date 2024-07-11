@@ -747,3 +747,63 @@ func TestHashDotStatement(t *testing.T) {
 		}
 	}
 }
+
+func TestLoopStatement(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{
+			`
+			let i = 0;
+			let sum = 0;
+			while (i < 5) {
+				sum += i;
+				i++;
+			}
+			sum;
+			`,
+			10,
+		},
+		{
+			`
+			let sum = 0;
+			for (let i = 0; i < 5; i++) {
+				sum += i;
+			}
+			sum;
+			`,
+			10,
+		},
+		{
+			`
+			let sum = 0;
+			for (let i = 0; i < 5; i++) {
+				if (i == 3) {
+					break;
+				}
+				sum += i;
+			}
+			sum;
+			`,
+			3,
+		},
+		{
+			`
+			let sum = 0;
+			for (let i = 0; i < 5; i++) {
+				if (i == 3) {
+					continue;
+				}
+				sum += i;
+			}
+			sum;
+			`,
+			7,
+		},
+	}
+
+	for _, tt := range tests {
+		testIntegerObject(t, testEval(tt.input), tt.expected)
+	}
+}

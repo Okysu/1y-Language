@@ -162,6 +162,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return BREAK
 	case *ast.ContinueStatement:
 		return CNT
+
+	case *ast.ForStatement:
+		return evalForStatement(node, env)
 	}
 
 	return nil
@@ -614,40 +617,38 @@ func evalIndexExpression(left, index object.Object) object.Object {
 	}
 }
 
-
 func evalMultiDimensionalIndexExpression(array, index object.Object) object.Object {
-    arrayObj, ok := array.(*object.Array)
-    if !ok {
-        return newError("left object is not an array: %s", array.Type())
-    }
+	arrayObj, ok := array.(*object.Array)
+	if !ok {
+		return newError("left object is not an array: %s", array.Type())
+	}
 
-    indexObj, ok := index.(*object.MultiDimensionalIndex)
-    if !ok {
-        return newError("index object is not a multi-dimensional index: %s", index.Type())
-    }
+	indexObj, ok := index.(*object.MultiDimensionalIndex)
+	if !ok {
+		return newError("index object is not a multi-dimensional index: %s", index.Type())
+	}
 
-    current := arrayObj
-    for _, idx := range indexObj.Indices {
-        idxVal, ok := idx.(*object.Integer)
-        if !ok {
-            return newError("index is not an integer: %s", idx.Type())
-        }
+	current := arrayObj
+	for _, idx := range indexObj.Indices {
+		idxVal, ok := idx.(*object.Integer)
+		if !ok {
+			return newError("index is not an integer: %s", idx.Type())
+		}
 
-        if idxVal.Value.Int64() < 0 || idxVal.Value.Int64() >= int64(len(current.Elements)) {
-            return NULL
-        }
+		if idxVal.Value.Int64() < 0 || idxVal.Value.Int64() >= int64(len(current.Elements)) {
+			return NULL
+		}
 
-        element := current.Elements[idxVal.Value.Int64()]
-        arrayElement, ok := element.(*object.Array)
-        if !ok {
-            return element
-        }
-        current = arrayElement
-    }
+		element := current.Elements[idxVal.Value.Int64()]
+		arrayElement, ok := element.(*object.Array)
+		if !ok {
+			return element
+		}
+		current = arrayElement
+	}
 
-    return current
+	return current
 }
-
 
 func evalArrayIndexExpression(array, index object.Object) object.Object {
 	arrayObj := array.(*object.Array)
@@ -750,33 +751,6 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	}
 
 	return pair.Value
-}
-
-func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.Object {
-	for {
-		condition := Eval(ws.Condition, env)
-		if isError(condition) {
-			return condition
-		}
-
-		if !isTruthy(condition) {
-			return NULL
-		}
-
-		whileEnv := object.NewEnclosedEnvironment(env)
-		result := evalLoopStatement(ws.Body, whileEnv)
-		if result != nil {
-			if result.Type() == object.BREAK_OBJ {
-				return NULL
-			}
-			if result.Type() == object.CONTINUE_OBJ {
-				continue
-			}
-			if result.Type() == object.RETURN_VALUE_OBJ || result.Type() == object.ERROR_OBJ {
-				return result
-			}
-		}
-	}
 }
 
 func evalLoopStatement(body *ast.BlockStatement, env *object.Environment) object.Object {
@@ -991,4 +965,65 @@ func readFileFromCurrentOrInterpreterDir(path string) ([]byte, error) {
 	// Try to read the file from the interpreter directory
 	fullPath := filepath.Join(execDir, path)
 	return os.ReadFile(fullPath)
+}
+
+func evalLoop(init ast.Statement, condition ast.Expression, post ast.Statement, body *ast.BlockStatement, env *object.Environment) object.Object {
+	var result object.Object
+
+	loopEnv := object.NewEnclosedEnvironment(env)
+
+	if init != nil {
+		result = Eval(init, loopEnv)
+		if isError(result) {
+			return result
+		}
+	}
+
+	for {
+		if condition != nil {
+			cond := Eval(condition, loopEnv)
+			if isError(cond) {
+				return cond
+			}
+			if !isTruthy(cond) {
+				break
+			}
+		}
+
+		result = evalLoopStatement(body, loopEnv)
+		if result != nil {
+			if result.Type() == object.RETURN_VALUE_OBJ || result.Type() == object.ERROR_OBJ {
+				return result
+			}
+			if result.Type() == object.BREAK_OBJ {
+				return NULL
+			}
+			if result.Type() == object.CONTINUE_OBJ {
+				if post != nil {
+					result = Eval(post, loopEnv)
+					if isError(result) {
+						return result
+					}
+				}
+				continue
+			}
+		}
+
+		if post != nil {
+			result = Eval(post, loopEnv)
+			if isError(result) {
+				return result
+			}
+		}
+	}
+
+	return NULL
+}
+
+func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Object {
+	return evalLoop(fs.Init, fs.Condition, fs.Post, fs.Body, env)
+}
+
+func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.Object {
+	return evalLoop(nil, ws.Condition, nil, ws.Body, env)
 }

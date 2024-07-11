@@ -495,3 +495,34 @@ func (mdi *MultiDimensionalIndex) String() string {
 
 	return out.String()
 }
+
+type ForStatement struct {
+	Token       token.Token // the 'for' token
+	Init        Statement
+	Condition   Expression
+	Post        Statement
+	Body        *BlockStatement
+}
+
+func (fs *ForStatement) statementNode()       {}
+func (fs *ForStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *ForStatement) String() string {
+	var out strings.Builder
+
+	out.WriteString("for ")
+	if fs.Init != nil {
+			out.WriteString(fs.Init.String())
+	}
+	out.WriteString("; ")
+	if fs.Condition != nil {
+			out.WriteString(fs.Condition.String())
+	}
+	out.WriteString("; ")
+	if fs.Post != nil {
+			out.WriteString(fs.Post.String())
+	}
+	out.WriteString(" ")
+	out.WriteString(fs.Body.String())
+
+	return out.String()
+}

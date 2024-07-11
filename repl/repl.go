@@ -3,29 +3,22 @@ package repl
 import (
 	"1ylang/evaluator"
 	"1ylang/lexer"
+	"1ylang/lib"
 	"1ylang/object"
 	"1ylang/parser"
 	"bufio"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"time"
 )
 
 func initEnv() *object.Environment {
 	env := object.NewEnvironment()
 
-	workingDir, err := os.Getwd()
-	if err == nil {
-		env.Set("WORKING_DIR", &object.String{Value: workingDir})
-	}
+	lib.RegisterStringFuncs(env)
+	lib.RegisterArrayFuncs(env)
+	lib.RegisterMathFuncs(env)
 
-	executablePath, err := os.Executable()
-	if err == nil {
-		installDir := filepath.Dir(executablePath)
-		env.Set("INSTALL_DIR", &object.String{Value: installDir})
-	}
 	return env
 }
 

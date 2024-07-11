@@ -55,6 +55,7 @@ const (
 	ELIF     = "ELIF" // else if
 	RETURN   = "RETURN"
 	WHILE    = "WHILE"
+	FOR      = "FOR"
 	BREAK    = "BREAK"
 	CONTINUE = "CONTINUE"
 	IMPORT   = "IMPORT"
@@ -101,6 +102,7 @@ var keywords = map[string]TokenType{
 	"return":   RETURN,
 	"const":    CONST,
 	"while":    WHILE,
+	"for":      FOR,
 	"break":    BREAK,
 	"continue": CONTINUE,
 	"import":   IMPORT,

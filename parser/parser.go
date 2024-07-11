@@ -126,6 +126,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseBreakStatement()
 	case token.CONTINUE:
 		return p.parseContinueStatement()
+	case token.FOR:
+		return p.parseForStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
@@ -440,7 +442,6 @@ func isCompoundAssignmentOperator(operator string) bool {
 	}
 }
 
-
 func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
 }
@@ -624,17 +625,17 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp.Index = p.parseExpression(LOWEST)
 
 	if p.peekTokenIs(token.COMMA) {
-			indices := []ast.Expression{exp.Index}
-			for p.peekTokenIs(token.COMMA) {
-					p.nextToken()
-					p.nextToken()
-					indices = append(indices, p.parseExpression(LOWEST))
-			}
-			exp.Index = &ast.MultiDimensionalIndex{Indices: indices}
+		indices := []ast.Expression{exp.Index}
+		for p.peekTokenIs(token.COMMA) {
+			p.nextToken()
+			p.nextToken()
+			indices = append(indices, p.parseExpression(LOWEST))
+		}
+		exp.Index = &ast.MultiDimensionalIndex{Indices: indices}
 	}
 
 	if !p.expectPeek(token.RBRACKET) {
-			return nil
+		return nil
 	}
 
 	return exp
@@ -803,4 +804,49 @@ func (p *Parser) parseQuickFloatLiteral() ast.Expression {
 		return nil
 	}
 	return &ast.FloatLiteral{Token: p.curToken, Value: val}
+}
+
+func (p *Parser) parseForStatement() ast.Statement {
+	stmt := &ast.ForStatement{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	// Parse initialization statement
+	if !p.curTokenIs(token.SEMICOLON) {
+		stmt.Init = p.parseStatement()
+	}
+
+	p.nextToken()
+
+	// Parse condition expression
+	if !p.curTokenIs(token.SEMICOLON) {
+		stmt.Condition = p.parseExpression(LOWEST)
+	}
+
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
+	}
+
+	p.nextToken()
+
+	// Parse post statement
+	if !p.curTokenIs(token.RPAREN) {
+		stmt.Post = p.parseStatement()
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	stmt.Body = p.parseBlockStatement()
+
+	return stmt
 }
