@@ -4,6 +4,7 @@ import (
 	"1ylang/object"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 )
 
@@ -13,11 +14,25 @@ func newBuiltin(fn func(args ...object.Object) object.Object) *object.Builtin {
 }
 
 var builtins = map[string]*object.Builtin{
+	"exit": newBuiltin(func(args ...object.Object) object.Object {
+		// allow user to specify an exit code
+		code := 0
+		if len(args) > 0 {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=0 or 1", len(args))
+			}
+			if args[0].Type() != object.INTEGER_OBJ {
+				return newError("argument to `exit` must be INTEGER, got %s", args[0].Type())
+			}
+			code = int(args[0].(*object.Integer).Value.Int64())
+		}
+		os.Exit(code)
+		return NULL
+	}),
 	"len": newBuiltin(func(args ...object.Object) object.Object {
 		if len(args) != 1 {
 			return newError("wrong number of arguments. got=%d, want=1", len(args))
 		}
-
 		switch arg := args[0].(type) {
 		case *object.String:
 			return &object.Integer{Value: big.NewInt(int64(len(arg.Value)))}

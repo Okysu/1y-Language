@@ -39,11 +39,6 @@ func Start(in io.Reader, out io.Writer, timed bool) {
 
 		line := scanner.Text()
 
-		// Check for exit or quit commands
-		if line == "exit" || line == "quit" {
-			return
-		}
-
 		executeLine(out, line, env, timed)
 	}
 }

@@ -9,7 +9,7 @@ import (
 
 const (
 	VERSION = "0.1.0 (alpha-20240607)"
-	HELP    = `Type "quit" or "exit" to exit.`
+	HELP    = `Type "exit()" or "Ctrl + D" to exit.`
 )
 
 func main() {
